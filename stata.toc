@@ -1,6 +1,6 @@
 v 1
 d Louis Pape
-p iOLS_delta IOLS_dleta - Run iOLS Procedure
+p iOLS-i2SLS - Run iOLS and i2SLS Procedure
 
 * l word-to-show path-or-url [description]
 * t: Directories within site:
