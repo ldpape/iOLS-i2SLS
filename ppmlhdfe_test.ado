@@ -6,7 +6,7 @@ syntax varlist [if] [in] [aweight pweight fweight iweight] [, NONparametric LOGI
 	* get depvar and indepvar
 	gettoken depvar list_var : list_var
 	gettoken indepvar list_var : list_var, p("(")
-	quietly: ppmlhdfe `varlist' `excluded' if `touse' , absorb(`absorb') d 
+	quietly: ppmlhdfe `varlist' if `touse' , absorb(`absorb') d 
 	quietly: replace `touse' = e(sample)
 	tempvar xb_hat lhs
 	quietly: predict `xb_hat', xbd
