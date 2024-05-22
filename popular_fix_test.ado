@@ -45,8 +45,9 @@ quietly: sum `touse' if `touse'
 if `k'==1 {
 local k = floor(sqrt(r(N))) 
 }
-quietly: discrim knn `indepvar' if `touse' , k(`k') group(`dep_pos') notable ties(nearest)      priors(proportional) 
-quietly: predict `p_hat_neg' `p_hat_temp'  if `touse', pr
+ quietly: _rmcoll `indepvar' if `touse', forcedrop 
+ quietly: discrim knn `r(varlist)'  if `touse' , k(`k') group(`dep_pos') notable ties(nearest)     priors(proportional) mahalanob
+ quietly: predict `p_hat_neg' `p_hat_temp'  if `touse', pr
 *quietly: mrunning  `dep_pos'   `indepvar'  if `touse' , nograph predict(`p_hat_temp')
 quietly: _pctile `p_hat_temp', p(5)
 local w1=max(r(r1),1e-5)
