@@ -115,7 +115,7 @@ else {
 	mata: xb_hat = X*beta_initial
 	//mata: y_tilde = log(y + delta*exp(xb_hat)) :- (log(delta :+ y:*exp(-xb_hat)) :- ((y:*exp(-xb_hat) :- 1):/(1:+delta)))
 	mata: y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat
-	mata: beta_new = cross(invXX,cross(X,y_tilde))
+	mata: beta_new = invXX*cross(X,y_tilde)
 	mata: past_criteria = criteria
 	mata: criteria = max(abs(beta_new:/beta_initial :- 1))
 	mata: beta_initial = beta_new
@@ -269,7 +269,7 @@ if _rc==0 {
 	mata : beta_initial = beta_initial'
 }
 else {
-	mata : beta_initial = cross(invPXPX,cross(PX,Py_tilde))
+	mata : beta_initial = invPXPX*cross(PX,Py_tilde)
 }
 /*         PREPARE LOOP      */	
 	mata : criteria = 0
@@ -292,7 +292,7 @@ else {
 	cap drop Y0_
     quietly: hdfe `y_tild' if `touse' [`weight'] , absorb(`absorb') generate(Y0_)  tolerance(`almost_conv')  acceleration(sd)  
 	mata : st_view(Py_tilde,.,"Y0_","`touse'")
-	mata: beta_new = cross(invPXPX,cross(PX,Py_tilde))
+	mata: beta_new = invPXPX*cross(PX,Py_tilde)
 	mata: past_criteria = criteria
 	mata: criteria = max(abs(beta_new:/beta_initial :- 1))
 	mata: beta_initial = beta_new
