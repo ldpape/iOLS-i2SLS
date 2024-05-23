@@ -133,8 +133,13 @@ if  "`show'" !="" {
 di "Current max relative coef. change: " "`eps'"
 }
 if "`eps'" == "."{
-	di "Evidence of non-convergence : all observations are dropped during iteration."
+	di in red "Non-convergence : all observations are dropped during iteration."
 	error 471
+}
+
+if "`eps'" == "`past_eps'"{
+	di in red "Non-convergence: the algorithm is cycling."
+	error 3360
 }
 
 if `k'==`maximum'{
@@ -341,9 +346,15 @@ di "Current max relative coef. change: " "`eps'"
 
 
 if "`eps'" == "."{
-	di "Evidence of non-convergence : all observations are dropped during iteration."
+	di in red "Non-convergence : all observations are dropped during iteration."
 	error 471
 }
+
+if "`eps'" == "`past_eps'"{
+	di in red "Non-convergence: the algorithm is cycling."
+	error 3360
+}
+
 if `k'==`maximum'{
 		  di "There has been no convergence."  
 }
