@@ -137,7 +137,7 @@ if "`eps'" == "."{
 	error 471
 }
 
-if "`eps'" == "`past_eps'"{
+if  abs(`eps'-`past_eps')<1e-5 & `eps'>0.5{
 	di in red "Non-convergence: the algorithm is cycling."
 	error 3360
 }
@@ -350,7 +350,7 @@ if "`eps'" == "."{
 	error 471
 }
 
-if "`eps'" == "`past_eps'"{
+if  abs(`eps'-`past_eps')<1e-5 & `eps'>0.5{
 	di in red "Non-convergence: the algorithm is cycling."
 	error 3360
 }
