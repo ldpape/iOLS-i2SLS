@@ -13,8 +13,8 @@ clear all
 * 25/05/2024 : create mata functions to increase speed
 mata: mata set matacache 5000
 mata: mata set matafavor speed
-cap program drop i2SLS_MP_HDFE2
-program define i2SLS_MP_HDFE2, eclass
+cap program drop i2SLS_MP_HDFE
+program define i2SLS_MP_HDFE, eclass
 syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-3) from(name)   nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string)]              
 /*         PARSE TEXT       */
 	cap drop _reg*
