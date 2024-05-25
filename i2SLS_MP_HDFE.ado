@@ -1,3 +1,4 @@
+clear all 
 * 15/12/2021 : corrected "cross" in S.E. which is complicated by the symmetrization
 * 15/12/2021 : corrected iteration logical specification
 * 16/12/2021 : corrected absorb from varlist to string, as in ppmlhdfe
@@ -9,11 +10,11 @@
 *3/2/2022 : drop preserve + add singleton selection based on Correia, Zylkin and Guimaraes.
 * 20/4/2022 : quietly collinearity + SHOW option 
 * 22/05/2024 : added options to fix delta, rescaled outcome variables, discovered that ln() and log() have different precision levels, changed the iOLS transformation , allowed for noabsorb and absorb in the same package, added convergence checks, added offset, allowed for  increase precision in HDFE as in PPMLHDFE, changed "starting value" of HDFE calls, changed parameter evolution norm 
-
+* 25/05/2024 : create mata functions to increase speed
 mata: mata set matacache 5000
 mata: mata set matafavor speed
-cap program drop i2SLS_MP_HDFE
-program define i2SLS_MP_HDFE, eclass
+cap program drop i2SLS_MP_HDFE2
+program define i2SLS_MP_HDFE2, eclass
 syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-3) from(name)   nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string)]              
 /*         PARSE TEXT       */
 	cap drop _reg*
@@ -84,18 +85,18 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	local var_list `endog' `r(varlist)' `cste'  
 	local instr_list `instr' `r(varlist)' `cste' 
 	local exogenous `r(varlist)'
-/*         PREPARE iOLS       */	
-	tempvar y_tild 
+/*         PREPARE iOLS       */
+	cap drop y_tild
 //	quietly gen `y_tild' = log(max(1/`max_y',`depvar2')) if `touse'
 //	quietly gen `y_tild' = log(max(0.000001,`depvar2')) if `touse'
-	quietly gen `y_tild' = ln(1+`depvar2') if `touse'
+	quietly gen y_tild = ln(1+`depvar2') if `touse'
 	mata : X=.
 	mata : Z=.
 	mata : y_tilde =.
 	mata : y =.
 	mata : st_view(X,.,"`var_list'","`touse'")
 	mata : st_view(Z,.,"`instr_list'","`touse'")
-	mata : st_view(y_tilde,.,"`y_tild'","`touse'")
+	mata : st_view(y_tilde,.,"y_tild","`touse'")
 	mata : st_view(y,.,"`depvar2'","`touse'")
 	mata : invPzX = invsym(cross(X,Z)*invsym(cross(Z,Z))*cross(Z,X))*cross(X,Z)*invsym(cross(Z,Z))
 /*         SET INITIAL VALUES       */	
@@ -109,25 +110,16 @@ else {
 }
 /*        INTIALIZE LOOP       */	
 	mata : delta = `delta'
+	mata : xb_hat = .
+	mata : past_criteria = .
+	mata : beta_new = .
 	local k = 1
 	local eps = 1000	
 	mata : criteria = 0
 	_dots 0
 /*         iOLS LOOP       */	
 	while ((`k' < `maximum') & (`eps' > `limit' )) {
-//	mata: alpha = log(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1]) ))
-//	mata: beta_initial[(cols(X)),1] = alpha
-	mata: xb_hat = X*beta_initial
-//	mata: y_tilde = log(y + delta*exp(xb_hat)) :- (log(delta :+ y:*exp(-xb_hat)) :- ((y:*exp(-xb_hat) :- 1):/(1:+delta)))
-	mata: y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat  
-	mata: beta_new = invPzX*cross(Z,y_tilde)
-	mata: past_criteria = criteria
-	mata: criteria = max(abs(beta_new:/beta_initial :- 1))
-	mata: beta_initial = beta_new
-	mata: st_numscalar("eps", criteria)
-	mata: st_local("eps", strofreal(criteria))
-	mata: st_numscalar("past_eps", past_criteria)
-	mata: st_local("past_eps", strofreal(past_criteria))
+	mata:  ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria)
 /*         DISPLAY ISSUES       */	
 if  "`show'" !="" {
 di "Current max relative coef. change: " "`eps'"
@@ -168,10 +160,10 @@ di "Evidence of non-convergence: increasing internal-delta. New value set to"
 	mata: weight = ui:/(1 :+ delta)
 	mata: st_numscalar("delta", delta)
 	mata: st_local("delta", strofreal(delta))
-	cap drop `y_tild' 
-	mata: st_store(., st_addvar("double", "`y_tild'"), "`touse'", y_tilde)
-	quietly: replace `y_tild' = `y_tild' + ln(`max_y')
-    quietly: ivreg2 `y_tild' `exogenous' (`endog' = `instr') [`weight'`exp'] if `touse', `option'
+	cap drop y_tild
+	mata: st_store(., st_addvar("double", "y_tild"), "`touse'", y_tilde)
+	quietly: replace y_tild = y_tild + ln(`max_y')
+    quietly: ivreg2 y_tild `exogenous' (`endog' = `instr') [`weight'`exp'] if `touse', `option'
 	local dof `e(Fdf2)'
 	matrix beta_final = e(b) // 	mata: st_matrix("beta_final", beta_new)
 	matrix Sigma = e(V)
@@ -191,6 +183,7 @@ di "Evidence of non-convergence: increasing internal-delta. New value set to"
     ereturn post beta_final Sigma_tild , obs(`e(N)') depname(`depvar') esample(`touse')  dof(`dof') 
 	cap drop i2SLS_MP_HDFE_xb_hat
 	cap drop i2SLS_MP_HDFE_error
+	cap drop y_tild
 /*         RESTORE PRE-NORMALIZED VALUES       */	
 	//mata : xb_hat = (xb_hat+log(`y_max'))
 	//mata : ui = -(y*`y_max'):*exp(-xb_hat)
@@ -257,10 +250,10 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	if "`alt_varlist'"=="" { // case with no X , only FE 
 	quietly hdfe `endog' if `touse' [`weight'] , absorb(`absorb') generate(E0_)
 	quietly hdfe `instr' if `touse' [`weight'] , absorb(`absorb') generate(Z0_)
-	tempvar y_tild  
 	//quietly gen `y_tild' = log(max(1/`max_y',`depvar2')) if `touse'
-	quietly gen `y_tild' = ln(1+`depvar2') if `touse'
-	quietly	hdfe `y_tild'  if `touse' [`weight'] , absorb(`absorb') generate(Y0_)  tolerance(1e-3)  acceleration(sd) 
+	cap drop y_tild
+	quietly gen y_tild = ln(1+`depvar2') if `touse'
+	quietly	hdfe y_tild  if `touse' [`weight'] , absorb(`absorb') generate(Y0_)  tolerance(1e-3)  acceleration(sd) 
 	local df_a = e(df_a)
 	local dof_hdfe = e(df_a)
 	mata : X=.
@@ -272,7 +265,7 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	mata : st_view(X,.,"`endog'","`touse'")
 	mata : st_view(PX,.,"E0_*","`touse'")
 	mata : st_view(PZ,.,"Z0_*","`touse'")
-	mata : st_view(y_tilde,.,"`y_tild'","`touse'")
+	mata : st_view(y_tilde,.,"y_tild","`touse'")
 	mata : st_view(Py_tilde,.,"Y0_","`touse'")
 	mata : st_view(y,.,"`depvar2'","`touse'")	
 	}
@@ -280,10 +273,10 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	quietly hdfe `alt_varlist'  if `touse'  [`weight'] , absorb(`absorb') generate(M0_)
 	quietly hdfe `endog'  if `touse'  [`weight'] , absorb(`absorb') generate(E0_)
 	quietly hdfe `instr'  if `touse'  [`weight'] , absorb(`absorb') generate(Z0_)
-	tempvar y_tild  
+	cap drop y_tild  
 //	quietly gen `y_tild' = log(max(1/`max_y',`depvar2')) if `touse'
-	quietly gen `y_tild' = ln(1+`depvar2') if `touse'
-	quietly	hdfe `y_tild'  if `touse'  [`weight'] , absorb(`absorb') generate(Y0_) tolerance(1e-3)  acceleration(sd)  
+	quietly gen y_tild = ln(1+`depvar2') if `touse'
+	quietly	hdfe y_tild  if `touse'  [`weight'] , absorb(`absorb') generate(Y0_) tolerance(1e-3)  acceleration(sd)  
 	local df_a = e(df_a)
 	local dof_hdfe = e(df_a)
 	mata : X=.
@@ -295,7 +288,7 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	mata : st_view(X,.,"`var_list'","`touse'")
 	mata : st_view(PX,.,"E0_* M0_*","`touse'")
 	mata : st_view(PZ,.,"Z0_* M0_*","`touse'")
-	mata : st_view(y_tilde,.,"`y_tild'","`touse'")
+	mata : st_view(y_tilde,.,"y_tild","`touse'")
 	mata : st_view(Py_tilde,.,"Y0_","`touse'")
 	mata : st_view(y,.,"`depvar2'","`touse'")	
 	}
@@ -313,31 +306,18 @@ else {
 	mata: criteria = 0 // needed to initialize
 	local k = 1
 	local eps = 1000	
+	mata : xb_hat = .
+	mata : xb_hat_M = .
+	mata : xb_hat_N = .
+	mata : diff = .
+	mata : fe = .
+	mata : beta_new = .
+	mata : past_criteria = .
 	local almost_conv = 1e-3
 	_dots 0
 /*          LOOP      */	
 	while ((`k' < `maximum') & (`eps' > `limit' )) {
-	mata: xb_hat_M = PX*beta_initial 
-	mata: xb_hat_N = X*beta_initial
-	mata: diff = y_tilde - Py_tilde
-	mata: fe = diff + xb_hat_M - xb_hat_N
-	mata: xb_hat = xb_hat_N + fe
-	//mata: alpha = log(mean(y:*exp(-xb_hat)))
-	//mata: y_tilde = log(y + delta*exp(xb_hat :+ alpha)) :- (log(delta :+ y:*exp(-xb_hat :- alpha )) :- ((y:*exp(-xb_hat :- alpha) :- 1):/(1:+delta)))
-	mata: y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat 
-	cap drop `y_tild' 
-	mata: st_store(., st_addvar("double", "`y_tild'"), "`touse'", y_tilde-diff)
-	cap drop Y0_
-    quietly: hdfe `y_tild' if `touse' [`weight'] , absorb(`absorb') generate(Y0_)  tolerance(`almost_conv')  acceleration(sd)  
-	mata : st_view(Py_tilde,.,"Y0_","`touse'")
-	mata: beta_new = invPzX*cross(PZ,Py_tilde)
-	mata: past_criteria = criteria
-	mata: criteria = max(abs(beta_new:/beta_initial :- 1))
-	mata: beta_initial = beta_new
-	mata: st_numscalar("eps", criteria)
-	mata: st_local("eps", strofreal(criteria))
-	mata: st_numscalar("past_eps", past_criteria)
-	mata: st_local("past_eps", strofreal(past_criteria))
+mata: ivloop_function_fe(y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
 /*         ERROR MESSAGES AND CONVERGENCE ISSUES      */	
 
 if  "`show'" !="" {
@@ -428,6 +408,7 @@ local df_r = e(Fdf2) - `df_a'
 	cap drop i2SLS_MP_HDFE_fe
 	cap drop i2SLS_MP_HDFE_error
 	cap drop _reghdfe*
+	cap drop y_tild
 /*         RESTORE PRE-NORMALIZED VALUES       */	
 		mata: xb_hat = (xb_hat :+ ln(`max_y'))
 		mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_fe"), "_COPY", fe)
@@ -449,5 +430,49 @@ ereturn display
 	cap drop M0_* 
 	cap drop Y0_*
 	cap drop xb_hat*
+}
+end
+
+
+
+mata:
+void function ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria)
+{
+	 xb_hat = X*beta_initial
+	 y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat  
+	 beta_new = invPzX*cross(Z,y_tilde)
+	 past_criteria = criteria
+	 criteria = max(abs(beta_new:/beta_initial :- 1))
+	 beta_initial = beta_new
+	 st_numscalar("eps", criteria)
+	 st_local("eps", strofreal(criteria))
+	 st_numscalar("past_eps", past_criteria)
+	 st_local("past_eps", strofreal(past_criteria))
+}
+end
+
+
+mata:
+void function ivloop_function_fe(y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
+{
+	xb_hat_M = PX*beta_initial 
+	xb_hat_N = X*beta_initial
+	diff = y_tilde - Py_tilde
+	fe = diff + xb_hat_M - xb_hat_N
+	xb_hat = xb_hat_N + fe
+    y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat 
+	stata("cap drop y_tild")
+	st_store(., st_addvar("double", "y_tild"), "`touse'", y_tilde-diff)
+	stata("cap drop Y0_")
+    stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)")  
+	st_view(Py_tilde,.,"Y0_","`touse'")
+	beta_new = invPzX*cross(PZ,Py_tilde)
+	past_criteria = criteria
+	criteria = max(abs(beta_new:/beta_initial :- 1))
+	beta_initial = beta_new
+	st_numscalar("eps", criteria)
+	st_local("eps", strofreal(criteria))
+	st_numscalar("past_eps", past_criteria)
+	st_local("past_eps", strofreal(past_criteria))
 }
 end
