@@ -104,6 +104,9 @@ else {
 	mata : beta_initial = invXX*cross(X,y_tilde) // reg on log (1 + y)/max(y)
 }
 /*        INTIALIZE LOOP       */	
+	mata: xb_hat = .
+	mata: beta_new = .
+	mata: past_criteria = .
 	mata : criteria = 0 
 	mata : delta = `delta'
 	local k = 1
