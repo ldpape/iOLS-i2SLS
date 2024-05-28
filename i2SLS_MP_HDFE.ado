@@ -1,4 +1,3 @@
-clear all 
 * 15/12/2021 : corrected "cross" in S.E. which is complicated by the symmetrization
 * 15/12/2021 : corrected iteration logical specification
 * 16/12/2021 : corrected absorb from varlist to string, as in ppmlhdfe
@@ -19,8 +18,7 @@ syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1)  ABS
 /*         PARSE TEXT       */
 	cap drop _reg*
 	marksample touse
-	markout `touse'  `cluster', s     
-	quietly keep if `touse'
+	markout `touse'  `cluster', s   
 	if  "`robust'" !="" {
 		local opt1  = "`robust' "
 	}
@@ -77,7 +75,6 @@ quietly:	drop `xb' `w'
 }
 quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 }
-
 /*         DROP COLLINEAR VARIABLES      */	
 	tempvar cste
 	gen `cste' = 1
@@ -180,6 +177,7 @@ di "Evidence of non-convergence: increasing internal-delta. New value set to"
     mat colnames Sigma_tild = `names' 
 	cap drop _COPY
 	quietly: gen _COPY = `touse'
+	sum _COPY
     ereturn post beta_final Sigma_tild , obs(`e(N)') depname(`depvar') esample(`touse')  dof(`dof') 
 	cap drop i2SLS_MP_HDFE_xb_hat
 	cap drop i2SLS_MP_HDFE_error
@@ -317,7 +315,7 @@ else {
 	_dots 0
 /*          LOOP      */	
 	while ((`k' < `maximum') & (`eps' > `limit' )) {
-mata: ivloop_function_fe(y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
+mata: ivloop_function_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
 /*         ERROR MESSAGES AND CONVERGENCE ISSUES      */	
 
 if  "`show'" !="" {
@@ -433,7 +431,8 @@ ereturn display
 }
 end
 
-
+*cap: mata: mata drop ivloop_function_nofe()
+*cap: mata: mata drop ivloop_function_fe() 
 
 mata:
 void function ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria)
@@ -453,7 +452,7 @@ end
 
 
 mata:
-void function ivloop_function_fe(y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
+void function ivloop_function_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
 {
 	xb_hat_M = PX*beta_initial 
 	xb_hat_N = X*beta_initial
@@ -462,10 +461,10 @@ void function ivloop_function_fe(y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X
 	xb_hat = xb_hat_N + fe
     y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat 
 	stata("cap drop y_tild")
-	st_store(., st_addvar("double", "y_tild"), "`touse'", y_tilde-diff)
+	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
 	stata("cap drop Y0_")
     stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)")  
-	st_view(Py_tilde,.,"Y0_","`touse'")
+	st_view(Py_tilde,.,"Y0_",touse)
 	beta_new = invPzX*cross(PZ,Py_tilde)
 	past_criteria = criteria
 	criteria = max(abs(beta_new:/beta_initial :- 1))
@@ -476,3 +475,4 @@ void function ivloop_function_fe(y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X
 	st_local("past_eps", strofreal(past_criteria))
 }
 end
+
