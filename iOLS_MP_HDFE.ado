@@ -136,9 +136,11 @@ di "There has been no convergence."
 }
 if  "`fixed'" =="" {
 if ((mod(`k'-4,50)==0) & (`eps' > `past_eps')) {
-di "Evidence of non-convergence: increasing internal-delta. New value set to"
 	mata: delta = (delta*2)*(delta<2500) + 2500*(delta*2>2500)
+	if  "`show'" !="" {
+	in gr _col(1) "Evidence of non-convergence: increasing internal-delta. New value set to"
 	mata: delta 
+						}
 	}
 }
 /*         DISPLAY ITERATION NUMBER       */	
@@ -302,14 +304,17 @@ if `k'==`maximum'{
 if (`eps' < 0.025) {
 	local almost_conv = max(1e-8, `almost_conv'*0.9)
 }
+
 if  "`fixed'" =="" {
-if ((mod(`k',50)==0)& (`eps' > (`past_eps'+0.15)) & (`k'>5)) {
-di "Evidence of non-convergence: increasing internal-delta. New value set to"
+if ((mod(`k'-4,50)==0) & (`eps' > `past_eps')) {
 	mata: delta = (delta*2)*(delta<2500) + 2500*(delta*2>2500)
+	if  "`show'" !="" {
+	in gr _col(1) "Evidence of non-convergence: increasing internal-delta. New value set to"
 	mata: delta 
+						}
 	}
 }
-	local k = `k'+1
+local k = `k'+1
 	_dots `k' 0
 	}
 	if `k'<20{
