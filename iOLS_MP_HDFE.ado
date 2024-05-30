@@ -138,7 +138,7 @@ if  "`fixed'" =="" {
 if ((mod(`k'-4,50)==0) & (`eps' > `past_eps')) {
 	mata: delta = (delta*2)*(delta<2500) + 2500*(delta*2>2500)
 	if  "`show'" !="" {
-	in gr _col(1) "Evidence of non-convergence: increasing internal-delta. New value set to"
+	di in gr _col(1) "Evidence of non-convergence: increasing internal-delta. New value set to"
 	mata: delta 
 						}
 	}
@@ -309,7 +309,7 @@ if  "`fixed'" =="" {
 if ((mod(`k'-4,50)==0) & (`eps' > `past_eps')) {
 	mata: delta = (delta*2)*(delta<2500) + 2500*(delta*2>2500)
 	if  "`show'" !="" {
-	in gr _col(1) "Evidence of non-convergence: increasing internal-delta. New value set to"
+	di in gr _col(1) "Evidence of non-convergence: increasing internal-delta. New value set to"
 	mata: delta 
 						}
 	}
