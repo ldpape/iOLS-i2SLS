@@ -392,9 +392,7 @@ void function loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_
 	past_criteria = criteria
 	criteria = max(abs(beta_new:/beta_initial :- 1))
 	beta_initial = beta_new
-	st_numscalar("eps", criteria)
 	st_local("eps", strofreal(criteria))
-	st_numscalar("past_eps", past_criteria)
 	st_local("past_eps", strofreal(past_criteria))
 }
 end
@@ -418,9 +416,7 @@ void function loop_function_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_in
 	past_criteria = criteria
 	criteria = max(abs(beta_new:/beta_initial :- 1))
 	beta_initial = beta_new
-	st_numscalar("eps", criteria)
 	st_local("eps", strofreal(criteria))
-	st_numscalar("past_eps", past_criteria)
 	st_local("past_eps", strofreal(past_criteria))
 }
 end
