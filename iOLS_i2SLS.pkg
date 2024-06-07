@@ -1,4 +1,3 @@
-********************************************** unique.pkg
 v 1
 d iOLS-i2SLS
 d Program to run iterated Ordinary Least Squares and iterated Two Stage Least Squares
@@ -10,4 +9,3 @@ f iOLS_MP_HDFE.sthlp
 f iOLS_MP_HDFE_test.ado
 f ppmlhdfe_test.ado
 f popular_fix_test.ado
-
