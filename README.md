@@ -22,7 +22,7 @@ To install this code into Stata, run the following (requires at least Stata 14) 
 
 >cap ado uninstall iOLS_i2SLS
 
->net install iOLS_i2SLS, from("https://raw.githubusercontent.com/ldpape/iOLS_i2SLS/main/")
+>net install iOLS_i2SLS, from("https://raw.githubusercontent.com/ldpape/iOLS-i2SLS/main/")
 
 Please feel free to contact me to report a bug or ask a question. 
 
