@@ -530,19 +530,15 @@ local k = `k'+1
 		  di in red "Evidence of non-convergence: algorithm stopped with < 20 iterations."  
 	}
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
-	mata: xb_hat_M = PX*beta_initial 
-	mata: xb_hat_N = X*beta_initial
-	mata: fe = y_tilde - Py_tilde + xb_hat_M - xb_hat_N
-	mata: xb_hat = xb_hat_N + fe 
-	mata: alpha = ln(mean(y:*exp(-xb_hat)))
-	mata: ui = y:*exp(-xb_hat :- alpha)
+	mata: xb_hat = X*beta_initial :+ ln(mean(exp(-X*beta_initial):*y))
+	mata: ui = y:*exp(-xb_hat)
 	mata: weight = ui:/( 1 :+ delta)
   	foreach var in `var_list' {     // rename variables for last ols
 	quietly	rename `var' TEMP_`var'
 	quietly	rename M0_`var' `var'
 	}
 cap _crcslbl Y0_ `depvar'
-quietly: reg Y0_ `var_list'  if `touse' [`weight'`exp'], `option' noconstant 
+quietly: reg Y0_ `var_list'  if `touse' [`weight'`exp'], `option'  noconstant
 local df_r = e(df_r) - `df_a'
  if "`cluster'" !="" {
  local df_r = e(df_r) 
@@ -575,7 +571,6 @@ cap drop _reghdfe*
 cap drop y_tild
 //	mata: xb_hat = (xb_hat :+ alpha :+ ln(`max_y')) // normalization
 //	mata: ui = (y*`max_y'):*exp(-xb_hat)
-	mata: st_store(., st_addvar("double", "iOLS_MP_HDFE_fe"), "_COPY", fe)
     mata: st_store(., st_addvar("double", "iOLS_MP_HDFE_error"), "_COPY", ui)
    	mata: st_store(., st_addvar("double", "iOLS_MP_HDFE_xb_hat"),"_COPY", xb_hat)
 ereturn scalar delta = `delta'
@@ -614,7 +609,7 @@ void function loop_function_ip(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_in
 {
 	diff = y_tilde - Py_tilde 
 	xb_hat = X*beta_initial :+ ln(mean(exp(-X*beta_initial):*y))
-	y_tilde = y:*exp(-xb_hat) + xb_hat  
+	y_tilde = y:*exp(-xb_hat):/(1 :+ delta) + xb_hat  
 	stata("cap drop y_tild")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde - diff)
 	stata("cap drop Y0_")
