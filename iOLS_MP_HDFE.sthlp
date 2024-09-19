@@ -25,7 +25,7 @@
 {pstd} {cmd:iOLS_MP_HDFE} implements iterated Ordinary Least Squares for Gamma Pseudo Maximum Likelihood (GPML), as described by {browse "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3444996":Bellego, Benatia, and Pape (2021)}. 
 It addresses the problem of the log of zero by iteratively running the {cmd:reghdfe} function. Convergence is controlled with the option {cmd:delta(#)} (default: 1).{p_end}
 
-{pstd} The program applies a within-transformation to difference out high-dimensional fixed effects using the HDFE package from {browse "http://scorreia.com/research/hdfe.pdf":Sergio Correia (2017)}. The syntax is consistent with {cmd:reghdfe}.{p_end}
+{pstd} The program applies a within-transformation to difference out high-dimensional fixed effects using the HDFE package from {browse "http://scorreia.com/research/hdfe.pdf":Sergio Correia (2017)}. The syntax is consistent with {cmd:reghdfe}.
 
 {pstd} The program also checks for separation issues, dropping problematic observations based on the method by {browse "https://arxiv.org/pdf/1903.01633.pdf":Correia, Guimarães, and Zylkin (2019)}.{p_end}
 
