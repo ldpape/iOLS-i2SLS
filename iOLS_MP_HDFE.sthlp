@@ -77,14 +77,12 @@ Bellégo, Christophe, Benatia, David, and Pape, Louis-Daniel, Dealing with Logs 
 {marker examples}{...}
 {title:Examples}
 
-{pstd}{hline}{p_end}
 {phang2}{cmd:. sysuse auto.dta, replace}{p_end}
 {phang2}{cmd:. xi: iOLS_MP_HDFE price mpg i.foreign, robust}{p_end}
 {phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) robust}{p_end}
 {phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) ip robust}{p_end}
 {phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) ip robust delta(3)}{p_end}
 {phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) ip robust delta(3) limit(1e-5) maximum(100)}{p_end}
-{pstd}{hline}{p_end}
 
 {marker results}{...}
 {title:Stored Results}
