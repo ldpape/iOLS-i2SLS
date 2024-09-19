@@ -99,5 +99,5 @@ Bellégo, Christophe, Benatia, David, and Pape, Louis-Daniel, Dealing with Logs 
 {title:Authors}
 
 {pstd}Christophe Bellego, David Benatia, Louis Pape {break}
-CREST - ENSAE - HEC Montréal - Ecole Polytechnique {break}
-Contact: {browse "mailto:louis.pape@polytechnique.edu":louis.pape@polytechnique.edu}{p_end}
+CREST - ENSAE - HEC Montréal - Télécom Paris {break}
+Contact: {browse "mailto:louis.pape@telecom-paris.fr":louis.pape@telecom-paris.fr}{p_end}
