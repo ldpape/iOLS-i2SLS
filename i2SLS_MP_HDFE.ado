@@ -586,6 +586,8 @@ if (i == max) display("Maximum number of iterations hit : results are unreliable
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (past_criteria<criteria) display("Evidence of non-convergence : if repeated, increase delta(number)")
+	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
 end
@@ -617,6 +619,8 @@ if (i == max) display("Maximum number of iterations hit : results are unreliable
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (past_criteria<criteria) display("Evidence of non-convergence : if repeated, increase delta(number)")
+	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
 end
@@ -645,6 +649,12 @@ if (i == max) display("Maximum number of iterations hit : results are unreliable
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (past_criteria<criteria) display("Evidence of non-convergence : if repeated, increase delta(number)")
+	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
 end
+
+ use "C:\Users\ldpap\Downloadslog_gravity\Log of Gravity.dta" ,replace
+  
+  
