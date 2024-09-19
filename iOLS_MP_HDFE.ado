@@ -559,10 +559,4 @@ show = (st_local("show"))
 	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
-end
-
-
- use "C:\Users\ldpap\Downloadslog_gravity\Log of Gravity.dta" ,replace
-  iOLS_MP_HDFE   trade lypex lypim lyex lyim ldist border comlang colony landl_ex landl_im lremot_ex lremot_im comfrt_wto open_wto   , absorb(ex_feenstra im_feenstra  )     
-  
-  
+end  
