@@ -5,33 +5,33 @@
 {vieweralsosee "reghdfe" "help reghdfe"}{...}
 {vieweralsosee "ppml" "help ppml"}{...}
 {vieweralsosee "ppmlhdfe" "help ppmlhdfe"}{...}
-{viewerjumpto "Syntax" "iOLS_delta_hdfe##syntax"}{...}
-{viewerjumpto "Description" "iOLS_delta_hdfe##description"}{...}
-{viewerjumpto "Citation" "iOLS_delta_hdfe##citation"}{...}
-{viewerjumpto "Authors" "iOLS_delta_hdfe##contact"}{...}
-{viewerjumpto "Examples" "iOLS_delta_hdfe##examples"}{...}
-{viewerjumpto "Description" "iOLS_delta_hdfe##Testing"}{...}
-{viewerjumpto "Stored results" "iOLS_delta_hdfe##results"}{...}
+{viewerjumpto "Syntax" "iOLS_MP_HDFE##syntax"}{...}
+{viewerjumpto "Description" "iOLS_MP_HDFE##description"}{...}
+{viewerjumpto "Citation" "iOLS_MP_HDFE##citation"}{...}
+{viewerjumpto "Authors" "iOLS_MP_HDFE##contact"}{...}
+{viewerjumpto "Examples" "iOLS_MP_HDFE##examples"}{...}
+{viewerjumpto "Description" "iOLS_MP_HDFE##Testing"}{...}
+{viewerjumpto "Stored results" "iOLS_MP_HDFE##results"}{...}
 
 {title:Title}
 
 {p2colset 5 18 20 2}{...}
-{p2col :{cmd:iOLS_delta_hdfe} {hline 2}} Iterated Ordinary Least Squares (iOLS) with delta and High-Dimensional Fixed Effects {p_end}
+{p2col :{cmd:iOLS_MP_HDFE} {hline 2}} Iterated Ordinary Least Squares (iOLS) estimation of GPML with High-Dimensional Fixed Effects {p_end}
 
 {p2colreset}{...}
 
-{pstd}{cmd:Introduction} This program implements iterated Two Stage Least Squares with delta, as described by {browse "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3444996":Bellego, Benatia, and Pape (2021)}. {cmd: iOLS_delta_hdfe} is a solution to the problem of the log of zero.  This method relies on running the "regress" function iteratively. This provides the reader with the final estimates and allows the use the post-estimation commands available under regress (using Y_tilde = log(Y + delta*exp(xb))) as a dependent variable. Delta allows the user to assess several moment conditions to assess the robustness of the parameter estimates to moment specification. The program {cmd:iOLS_delta_hdfe_test} provide a test to assess how well each of these moments, which have implications in terms of the patter n of zeros in the data, compare to the pattern of zeros observed in the data. 
+{pstd}{cmd:Introduction} This program implements iterated Ordinary Least Squares for Gamma Pseudo Maximum Likelihood (GPML), as described by {browse "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3444996":Bellego, Benatia, and Pape (2021)}. {cmd: iOLS_MP_HDFE} is a solution to the problem of the log of zero.  This method relies on running the "reghdfe" function iteratively. The method depends on the rate of convergence, which you can increase with the option ", delta(number)" (set to 1 initially).
 
-{pstd}{cmd:Fixed-Effects:} This package takes a within-transformation to difference out high-dimensional fixed effects. To do so, it relies on the HDFE package developed by {browse "http://scorreia.com/research/hdfe.pdf": Sergio Correia (2017)}. In turn, the obtained standard errors will slightly differ from those obtained running the same model with iOLS_delta_hdfe. 
+{pstd}{cmd:Fixed-Effects:} This package takes a within-transformation to difference out high-dimensional fixed effects. To do so, it relies on the HDFE package (used in reghdfe) developed by {browse "http://scorreia.com/research/hdfe.pdf": Sergio Correia (2017)}. The syntax follows from reghdfe.
 
-{pstd}{cmd:Note:} This program automatically checks for the presence of seperation, which would preclude the existence of estimates, using the method proposed by {browse "https://arxiv.org/pdf/1903.01633.pdf": Correia, Guimarães, and Zylkin (2019) }. This results in dropping problematic observations.
+{pstd}{cmd:Note:} This program automatically checks for the presence of seperation, which would preclude the existence of estimates, using the method proposed by {browse "https://arxiv.org/pdf/1903.01633.pdf": Correia, Guimarães, and Zylkin (2019) }. This results in dropping problematic observations. It is worth checking sample consistency.
 
 {marker syntax}{...}
 {title:Syntax}
 
-{p 8 15 2} {cmd:iOLS_delta_hdfe}
+{p 8 15 2} {cmd:iOLS_MP_HDFE}
 {depvar} [{indepvars}]
-{it:if}  {cmd:,} delta(#) absorb({it:fixed-effects}) [{help iOLS_delta_hdfe##options:options}] {p_end}
+{it:if}  {cmd:,} delta(#) absorb({it:fixed-effects}) [{help iOLS_MP_HDFE##options:options}] {p_end}
 
 {synoptset 22}{...}
 {synopthdr: variables}
@@ -47,21 +47,22 @@
 {synoptset 22 tabbed}{...}
 {synopthdr}
 {synoptline}
-{syntab: Standard Errors: Classical/Robust/Clustered}
-{synopt:{opt vce}{cmd:(}{help iOLS_delta_hdfe##opt_vce:vcetype}{cmd:)}}{it:vcetype}
+{syntab: fixed-effects}
+{synopt:{opt delta}{cmd:(}{help iOLS_MP_HDFE##absorb:absorb}{cmd:)}}{it:absorb} This option allows you to include the categorical variables to treat as fixed effects.
+{synopt:{opt vce}{cmd:(}{help iOLS_MP_HDFE##opt_vce:vcetype}{cmd:)}}{it:vcetype}
 may be classical if unspecified (assuming homoskedasticity), {opt r:obust}, or vce({opt cl:uster} varlist) (allowing two- and multi-way clustering){p_end}
-{syntab: Delta}
-{synopt:{opt delta}{cmd:(}{help iOLS_delta_hdfe##delta:delta}{cmd:)}}{it:delta} is any strictly positive constant. Set to 1 if unspecified. {p_end}
+{syntab: delta}
+{synopt:{opt delta}{cmd:(}{help iOLS_MP_HDFE##delta:delta}{cmd:)}}{it:delta} is any strictly positive constant. Set to 1 if unspecified. {p_end}
 {syntab: Convergence}
-{synopt:{opt limit}{cmd:(}{help iOLS_delta_hdfe##limit:limit}{cmd:)}} Choose convergence criteria in terms of mean squared difference between two set of paramter estimates between two iterations. Set to 1e-8 if unspecified. {p_end}
-{synopt:{opt maximum}{cmd:(}{help iOLS_delta_hdfe##maximum:maximum}{cmd:)}} Maximum number of iterations. Set to 10,000 if unspecified. {p_end}
-{syntab: Starting Point}
-{synopt:{opt from}{cmd:(}{help i2SLS_delta##limit:limit}{cmd:)}} Indicate a matrix of parameters to use as a starting point (i.e, from ppml or ivreg2 with log(1+Y) for example). {p_end}
+{synopt:{opt limit}{cmd:(}{help iOLS_MP_HDFE##limit:limit}{cmd:)}} Choose convergence criteria in terms of mean squared difference between two set of paramter estimates between two iterations. Set to 1e-3 if unspecified. {p_end}
+{synopt:{opt maximum}{cmd:(}{help iOLS_MP_HDFE##maximum:maximum}{cmd:)}} Maximum number of iterations. Set to 10,000 if unspecified. {p_end}
+{synopt:{opt show}{cmd:(}{help iOLS_MP_HDFE##show:show}{cmd:)}} This option shows the maximum absolute deviations between two iterations.  Convergence is assured when this number decreases regularly down to the convergence criteria  (1e-3) {p_end}
+{synopt:{opt ip}{cmd:(}{help iOLS_MP_HDFE##ip:ip}{cmd:)}} This option uses the transformation which is immune to the incidental parameter problem.  {p_end}
 
 {marker Post-Estimation}{...}
 {title:Post-Estimation}
 
-{pstd} This program generates three variables : {cmd:iOLS_delta_hdfe_xb} which calculates the linear index for the final sample, {cmd:iOLS_delta_hdfe_U} which provides the un-transformed residual U_i, and {cmd:iOLS_delta_hdfe_fe} which calculates the sum of individual fixed-effects for each observations. 
+{pstd} This program generates outcome variables. (i) If you have no fixed-effects, "iOLS_MP_HDFE_xb_hat" is "X'b" in "Y = exp(X'b)U" and "iOLS_MP_HDFE_error" is equal to "U".  (ii) If you include fixed-effects with the "absorb()" option, "iOLS_MP_HDFE_fe" are the fixed effects, "iOLS_MP_HDFE_error" is the error "U", and "iOLS_MP_HDFE_xb_hat" is "X'b + fixed-effects".  (iii) If you use the "ip" option, "iOLS_MP_HDFE_error" is equal to "U" and  "iOLS_MP_HDFE_xb_hat" is equal to the linear index  excluding the fixed effects (i.e, equal to "x1'b" in  "Y=exp(x1'b + fe)U".
 
 {marker authors}{...}
 {title:Authors}
@@ -86,12 +87,14 @@ or in BibTex :
 {marker examples}{...}
 {title:Examples}
 
-{browse "http://www.haghish.com/statistics/stata-blog/stata-programming/download/ivpois.html":ivpois help file}.
 {p_end}
 {hline}
-{phang2}{cmd:. use "http://www.stata-press.com/data/r14/airline"}{p_end}
-{phang2}{cmd:. gen fixed_effect = _n<3}{p_end}
-{phang2}{cmd:. iOLS_delta_HDFE injuries airline  , absorb(fixed_effect) delta(100) robust }{p_end}
+{phang2}{cmd:. sysuse auto.dta, replace }{p_end}
+{phang2}{cmd:. xi: iOLS_MP_HDFE price mpg i.foreign, robust  }{p_end}
+{phang2}{cmd:. iOLS_MP_HDFE price mpg , absorb(foreign) robust  }{p_end}
+{phang2}{cmd:. iOLS_MP_HDFE price mpg , absorb(foreign) ip robust  }{p_end}
+{phang2}{cmd:. iOLS_MP_HDFE price mpg , absorb(foreign) ip robust delta(3)  }{p_end}
+{phang2}{cmd:. iOLS_MP_HDFE price mpg , absorb(foreign) ip robust delta(3) limit(1e-5) maximum(100) }{p_end}
 {hline}
 
 
@@ -99,15 +102,12 @@ or in BibTex :
 {title:Stored results}
 
 {pstd}
-{cmd:iOLS_delta_hdfe} stores the following in {cmd:e()}:
+{cmd:iOLS_MP_HDFE} stores the following in {cmd:e()}:
 
 {synoptset 24 tabbed}{...}
 {syntab:Scalars}
 {synopt:{cmd:e(N)}} number of observations{p_end}
 {synopt:{cmd:e(sample)}} marks the sample used for estimation {p_end}
-{synopt:{cmd:e(eps)}} sum of the absolute differences between the parameters from the last two iterations of iOLS {p_end}
-{synopt:{cmd:e(k)}} number of iterations of iOLS{p_end}
-{synopt:{cmd:iOLS_delta_hdfe_U}} un-transformed residual U_hat from Y = exp(Xb+fe)*U {p_end}
-{synopt:{cmd:iOLS_delta_hdfe_xb}} estimated linear index Xb {p_end}
-{synopt:{cmd:iOLS_delta_hdfe_fe}} estimated fixed effect fe {p_end}
+{synopt:{cmd:e(df_r)}} is the degrees of freedom {p_end}
+
 
