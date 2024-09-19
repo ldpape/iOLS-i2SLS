@@ -10,8 +10,10 @@
 * 20/4/2022 : quietly collinearity + SHOW option 
 * 22/05/2024 : added options to fix delta, rescaled outcome variables, discovered that ln() and log() have different precision levels, changed the iOLS transformation , allowed for noabsorb and absorb in the same package, added convergence checks, added offset, allowed for  increase precision in HDFE as in PPMLHDFE, changed "starting value" of HDFE calls, changed parameter evolution norm 
 * 25/05/2024 : create mata functions to increase speed
+clear all 
 mata: mata set matacache 5000
 mata: mata set matafavor speed
+mata: mata set matastrict off
 cap program drop i2SLS_MP_HDFE
 program define i2SLS_MP_HDFE, eclass
 syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-3) from(name)   nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW IP FIXED Robust CLuster(string)]              
@@ -90,9 +92,7 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	local exogenous `r(varlist)'
 /*         PREPARE iOLS       */
 	cap drop y_tild
-//	quietly gen `y_tild' = log(max(1/`max_y',`depvar2')) if `touse'
-//	quietly gen `y_tild' = log(max(0.000001,`depvar2')) if `touse'
-	quietly gen y_tild = asinh(`depvar') if `touse'
+	quietly gen y_tild = ln(1+`depvar') if `touse'
 	mata : X=.
 	mata : Z=.
 	mata : y_tilde =.
@@ -118,44 +118,11 @@ else {
 	mata : beta_new = .
 	local k = 1
 	local eps = 1000	
-	mata : criteria = 0
-	_dots 0
+	mata : criteria = 10000
 /*         iOLS LOOP       */	
-	while ((`k' < `maximum') & (`eps' > `limit' )) {
+
 	mata:  ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria)
-/*         DISPLAY ISSUES       */	
-if  "`show'" !="" {
-di "Current max relative coef. change: " "`eps'"
-}
-if "`eps'" == "."{
-	di in red "Non-convergence : all observations are dropped during iteration."
-	error 471
-}
 
-if  abs(`eps'-`past_eps')<1e-5 & `eps'>0.5{
-	di in red "Non-convergence: the algorithm is cycling."
-	error 3360
-}
-
-if `k'==`maximum'{
-di "There has been no convergence."  
-}
-if  "`fixed'" =="" {
-if ((mod(`k'-4,50)==0) & (`eps' > `past_eps')) {
-	mata: delta = (delta*2)*(delta<2500) + 2500*(delta*2>2500)
-	if  "`show'" !="" {
-	di in gr _col(1) "Evidence of non-convergence: increasing internal-delta. New value set to"
-	mata: delta 
-						}
-	}
-}
-/*         DISPLAY ITERATION NUMBER       */	
-	local k = `k'+1
-	_dots `k' 0
-	}
-	if `k'<20{
-		  di in red "Evidence of non-convergence: algorithm stopped with < 20 iterations."  
-	}
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
 	mata: beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	mata: xb_hat = X*beta_initial
@@ -258,7 +225,7 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	quietly hdfe `instr' if `touse' [`weight'] , absorb(`absorb') generate(Z0_)
 	//quietly gen `y_tild' = log(max(1/`max_y',`depvar2')) if `touse'
 	cap drop y_tild
-quietly gen y_tild = asinh(`depvar') if `touse'
+quietly gen y_tild = ln(1+`depvar') if `touse'
 	quietly	hdfe y_tild  if `touse' [`weight'] , absorb(`absorb') generate(Y0_)  tolerance(1e-3)  acceleration(sd) 
 	local df_a = e(df_a)
 	local dof_hdfe = e(df_a)
@@ -308,7 +275,7 @@ else {
 	mata : beta_initial = invPzX*cross(PZ,Py_tilde)
 }
 /*         PREPARE LOOP      */	
-	mata: criteria = 0 // needed to initialize
+	mata: criteria = 1000 // needed to initialize
 	local k = 1
 	local eps = 1000	
 	mata : xb_hat = .
@@ -319,48 +286,9 @@ else {
 	mata : beta_new = .
 	mata : past_criteria = .
 	local almost_conv = 1e-3
-	_dots 0
 /*          LOOP      */	
-	while ((`k' < `maximum') & (`eps' > `limit' )) {
 mata: ivloop_function_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
-/*         ERROR MESSAGES AND CONVERGENCE ISSUES      */	
 
-if  "`show'" !="" {
-di "Current max relative coef. change: " "`eps'"
-}
-
-
-if "`eps'" == "."{
-	di in red "Non-convergence : all observations are dropped during iteration."
-	error 471
-}
-
-if  abs(`eps'-`past_eps')<1e-5 & `eps'>0.5{
-	di in red "Non-convergence: the algorithm is cycling."
-	error 3360
-}
-
-if `k'==`maximum'{
-		  di "There has been no convergence."  
-}
-if (`eps' < 0.025) {
-	local almost_conv = max(1e-8, `almost_conv'*0.9)
-}
-if  "`fixed'" =="" {
-if ((mod(`k'-4,50)==0) & (`eps' > `past_eps')) {
-	mata: delta = (delta*2)*(delta<2500) + 2500*(delta*2>2500)
-	if  "`show'" !="" {
-	di in gr _col(1) "Evidence of non-convergence: increasing internal-delta. New value set to"
-	mata: delta 
-						}
-	}
-}
-	local k = `k'+1
-	_dots `k' 0
-	}
-	if `k'<20{
-		  di in red "Evidence of non-convergence: algorithm stopped with < 20 iterations."  
-	}
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
 	mata: ui = y:*exp(-xb_hat)
 	mata: weight = ui:/(1 :+ delta)
@@ -488,12 +416,12 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	cap drop Y0_*
 	cap drop xb_hat*
 	if "`alt_varlist'"=="" { // case with no X , only FE 
-	quietly hdfe `endog' if `touse' [`weight'] , absorb(`absorb') generate(E0_)
-	quietly hdfe `instr' if `touse' [`weight'] , absorb(`absorb') generate(Z0_)
+	quietly hdfe `endog' if `touse' [`weight'] , absorb(`absorb') generate(E0_) acceleration(sd)   transform(sym)
+	quietly hdfe `instr' if `touse' [`weight'] , absorb(`absorb') generate(Z0_) acceleration(sd)   transform(sym)
 	//quietly gen `y_tild' = log(max(1/`max_y',`depvar2')) if `touse'
 	cap drop y_tild
-quietly gen y_tild = asinh(`depvar') if `touse'
-	quietly	hdfe y_tild  if `touse' [`weight'] , absorb(`absorb') generate(Y0_)  tolerance(1e-3)  acceleration(sd) 
+quietly gen y_tild = ln(1+`depvar') if `touse'
+	quietly	hdfe y_tild  if `touse' [`weight'] , absorb(`absorb') generate(Y0_)  tolerance(1e-3)  acceleration(sd)   transform(sym)
 	local df_a = e(df_a)
 	local dof_hdfe = e(df_a)
 	mata : X=.
@@ -514,8 +442,8 @@ quietly gen y_tild = asinh(`depvar') if `touse'
 	quietly hdfe `endog'  if `touse'  [`weight'] , absorb(`absorb') generate(E0_)
 	quietly hdfe `instr'  if `touse'  [`weight'] , absorb(`absorb') generate(Z0_)
 	cap drop y_tild  
-	quietly gen y_tild = asinh(`depvar') if `touse'
-	quietly	hdfe y_tild  if `touse'  [`weight'] , absorb(`absorb') generate(Y0_) tolerance(1e-3)  acceleration(sd)  
+	quietly gen y_tild = ln(1+`depvar') if `touse'
+	quietly	hdfe y_tild  if `touse'  [`weight'] , absorb(`absorb') generate(Y0_)  tolerance(1e-3)  acceleration(sd)   transform(sym) 
 	local df_a = e(df_a)
 	local dof_hdfe = e(df_a)
 	mata : X=.
@@ -542,7 +470,7 @@ else {
 	mata : beta_initial = invPzX*cross(PZ,Py_tilde)
 }
 /*         PREPARE LOOP      */	
-	mata: criteria = 0 // needed to initialize
+	mata: criteria = 1000 // needed to initialize
 	local k = 1
 	local eps = 1000	
 	mata : xb_hat = .
@@ -553,48 +481,9 @@ else {
 	mata : beta_new = .
 	mata : past_criteria = .
 	local almost_conv = 1e-3
-	_dots 0
 /*          LOOP      */	
-	while ((`k' < `maximum') & (`eps' > `limit' )) {
 mata: ivloop_function_ip("`touse'",y,xb_hat,PZ,beta_initial,X,diff,Py_tilde,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
-/*         ERROR MESSAGES AND CONVERGENCE ISSUES      */	
 
-if  "`show'" !="" {
-di "Current max relative coef. change: " "`eps'"
-}
-
-
-if "`eps'" == "."{
-	di in red "Non-convergence : all observations are dropped during iteration."
-	error 471
-}
-
-if  abs(`eps'-`past_eps')<1e-5 & `eps'>0.5{
-	di in red "Non-convergence: the algorithm is cycling."
-	error 3360
-}
-
-if `k'==`maximum'{
-		  di "There has been no convergence."  
-}
-if (`eps' < 0.025) {
-	local almost_conv = max(1e-8, `almost_conv'*0.9)
-}
-if  "`fixed'" =="" {
-if ((mod(`k'-4,50)==0) & (`eps' > `past_eps')) {
-	mata: delta = (delta*2)*(delta<2500) + 2500*(delta*2>2500)
-	if  "`show'" !="" {
-	di in gr _col(1) "Evidence of non-convergence: increasing internal-delta. New value set to"
-	mata: delta 
-						}
-	}
-}
-	local k = `k'+1
-	_dots `k' 0
-	}
-	if `k'<20{
-		  di in red "Evidence of non-convergence: algorithm stopped with < 20 iterations."  
-	}
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
 	mata: ui = y:*exp(-xb_hat)
 	mata: weight = ui:/(1 :+ delta)
@@ -682,15 +571,22 @@ cap: mata: mata drop ivloop_function_ip()
 mata:
 void function ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria)
 {
+max = strtoreal(st_local("maximum"))
+lim = strtoreal(st_local("limit"))
+show = (st_local("show"))
+	for (i=1; i<=max;i++) {
 	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	 xb_hat = X*beta_initial
 	 y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat  
 	 beta_new = invPzX*cross(Z,y_tilde)
 	 past_criteria = criteria
-	 criteria = max(abs(beta_new:/beta_initial :- 1))
+	criteria = max(abs(beta_new:-beta_initial))
 	 beta_initial = beta_new
-	 st_local("eps", strofreal(criteria))
-	 st_local("past_eps", strofreal(past_criteria))
+if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
+ 	if (criteria < lim) i=max+1;; // puts an end to the loop 
+	if (show != "") criteria;;
+	if (past_criteria<criteria) display("Evidence of non-convergence : if repeated, increase delta(number)")
+	}
 }
 end
 
@@ -698,6 +594,10 @@ end
 mata:
 void function ivloop_function_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
 {
+	max = strtoreal(st_local("maximum"))
+lim = strtoreal(st_local("limit"))
+show = (st_local("show"))
+	for (i=1; i<=max;i++) {
 	xb_hat_M = PX*beta_initial 
 	xb_hat_N = X*beta_initial
 	diff = y_tilde - Py_tilde
@@ -711,10 +611,13 @@ void function ivloop_function_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,be
 	st_view(Py_tilde,.,"Y0_",touse)
 	beta_new = invPzX*cross(PZ,Py_tilde)
 	past_criteria = criteria
-	criteria = max(abs(beta_new:/beta_initial :- 1))
+	criteria = max(abs(beta_new:-beta_initial))
 	beta_initial = beta_new
-	st_local("eps", strofreal(criteria))
-	st_local("past_eps", strofreal(past_criteria))
+if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
+ 	if (criteria < lim) i=max+1;; // puts an end to the loop 
+	if (show != "") criteria;;
+	if (past_criteria<criteria) display("Evidence of non-convergence : if repeated, increase delta(number)")
+	}
 }
 end
 
@@ -722,19 +625,26 @@ end
 mata:
 void function ivloop_function_ip(string scalar touse, y,xb_hat,PZ,beta_initial,X,diff,Py_tilde,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
 {
+max = strtoreal(st_local("maximum"))
+lim = strtoreal(st_local("limit"))
+show = (st_local("show"))
+	for (i=1; i<=max;i++) {
 	diff = y_tilde - Py_tilde
 	xb_hat = X*beta_initial :+ ln(mean(exp(-X*beta_initial):*y))
 	y_tilde = y:*exp(-xb_hat):/(1 :+ delta) + xb_hat  
 	stata("cap drop y_tild")
-	st_store(., st_addvar("double", "y_tild"), touse, y_tilde)
+	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
 	stata("cap drop Y0_")
-    stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  
+    stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)   tolerance(\`almost_conv')  acceleration(sd)   transform(sym) ")  
 	st_view(Py_tilde,.,"Y0_",touse)
 	beta_new = invPzX*cross(PZ,Py_tilde)
 	past_criteria = criteria
-	criteria = max(abs(beta_new:/beta_initial :- 1))
+	criteria = max(abs(beta_new:-beta_initial))
 	beta_initial = beta_new
-	st_local("eps", strofreal(criteria))
-	st_local("past_eps", strofreal(past_criteria))
+if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
+ 	if (criteria < lim) i=max+1;; // puts an end to the loop 
+	if (show != "") criteria;;
+	if (past_criteria<criteria) display("Evidence of non-convergence : if repeated, increase delta(number)")
+	}
 }
 end
