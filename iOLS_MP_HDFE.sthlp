@@ -46,11 +46,15 @@
 {synoptset 22 tabbed}{...}
 {synopthdr}
 {synoptline}
+
 {syntab: fixed-effects}
 {synopt:{opt delta}{cmd:(}{help iOLS_MP_HDFE##absorb:absorb}{cmd:)}}{it:absorb} This option allows you to include the categorical variables to treat as fixed effects.
+
 {synopt:{opt vce}{cmd:(}{help iOLS_MP_HDFE##opt_vce:vcetype}{cmd:)}}{it:vcetype} May be classical if unspecified (assuming homoskedasticity), {opt r:obust}, or vce({opt cl:uster} varlist) (allowing two- and multi-way clustering)
 {syntab: delta}
+
 {synopt:{opt delta}{cmd:(}{help iOLS_MP_HDFE##delta:delta}{cmd:)}}{it:delta} is any strictly positive constant. Set to 1 if unspecified. 
+
 {syntab: Convergence}
 {synopt:{opt limit}{cmd:(}{help iOLS_MP_HDFE##limit:limit}{cmd:)}} Choose convergence criteria in terms of mean squared difference between two set of paramter estimates between two iterations. Set to 1e-3 if unspecified.
 {synopt:{opt maximum}{cmd:(}{help iOLS_MP_HDFE##maximum:maximum}{cmd:)}} Maximum number of iterations. Set to 10,000 if unspecified.
