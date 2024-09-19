@@ -48,15 +48,14 @@
 {synoptline}
 {syntab: fixed-effects}
 {synopt:{opt delta}{cmd:(}{help iOLS_MP_HDFE##absorb:absorb}{cmd:)}}{it:absorb} This option allows you to include the categorical variables to treat as fixed effects.
-{synopt:{opt vce}{cmd:(}{help iOLS_MP_HDFE##opt_vce:vcetype}{cmd:)}}{it:vcetype}
-may be classical if unspecified (assuming homoskedasticity), {opt r:obust}, or vce({opt cl:uster} varlist) (allowing two- and multi-way clustering){p_end}
+{synopt:{opt vce}{cmd:(}{help iOLS_MP_HDFE##opt_vce:vcetype}{cmd:)}}{it:vcetype} May be classical if unspecified (assuming homoskedasticity), {opt r:obust}, or vce({opt cl:uster} varlist) (allowing two- and multi-way clustering)
 {syntab: delta}
-{synopt:{opt delta}{cmd:(}{help iOLS_MP_HDFE##delta:delta}{cmd:)}}{it:delta} is any strictly positive constant. Set to 1 if unspecified. {p_end}
+{synopt:{opt delta}{cmd:(}{help iOLS_MP_HDFE##delta:delta}{cmd:)}}{it:delta} is any strictly positive constant. Set to 1 if unspecified. 
 {syntab: Convergence}
-{synopt:{opt limit}{cmd:(}{help iOLS_MP_HDFE##limit:limit}{cmd:)}} Choose convergence criteria in terms of mean squared difference between two set of paramter estimates between two iterations. Set to 1e-3 if unspecified. {p_end}
-{synopt:{opt maximum}{cmd:(}{help iOLS_MP_HDFE##maximum:maximum}{cmd:)}} Maximum number of iterations. Set to 10,000 if unspecified. {p_end}
-{synopt:{opt show}{cmd:(}{help iOLS_MP_HDFE##show:show}{cmd:)}} This option shows the maximum absolute deviations between two iterations.  Convergence is assured when this number decreases regularly down to the convergence criteria  (1e-3) {p_end}
-{synopt:{opt ip}{cmd:(}{help iOLS_MP_HDFE##ip:ip}{cmd:)}} This option uses the transformation which is immune to the incidental parameter problem.  {p_end}
+{synopt:{opt limit}{cmd:(}{help iOLS_MP_HDFE##limit:limit}{cmd:)}} Choose convergence criteria in terms of mean squared difference between two set of paramter estimates between two iterations. Set to 1e-3 if unspecified.
+{synopt:{opt maximum}{cmd:(}{help iOLS_MP_HDFE##maximum:maximum}{cmd:)}} Maximum number of iterations. Set to 10,000 if unspecified.
+{synopt:{opt show}{cmd:(}{help iOLS_MP_HDFE##show:show}{cmd:)}} This option shows the maximum absolute deviations between two iterations.  Convergence is assured when this number decreases regularly down to the convergence criteria  (1e-3) 
+{synopt:{opt ip}{cmd:(}{help iOLS_MP_HDFE##ip:ip}{cmd:)}} This option uses the transformation which is immune to the incidental parameter problem.  
 
 {marker Post-Estimation}{...}
 {title:Post-Estimation}
