@@ -3,6 +3,7 @@ d iOLS-i2SLS
 d Program to run iterated Ordinary Least Squares and iterated Two Stage Least Squares
 d Distribution-Date: 23 May 2024
 f i2SLS_MP_HDFE.ado
+f i2SLS_MP_HDFE.sthlp
 f i2SLS_MP_HDFE_test.ado
 f iOLS_MP_HDFE.ado
 f iOLS_MP_HDFE.sthlp
