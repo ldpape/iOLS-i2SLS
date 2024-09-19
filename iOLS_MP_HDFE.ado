@@ -35,7 +35,6 @@ gettoken _rhs list_var : list_var, p("(")
 foreach var of varlist `depvar' `_rhs' {   // drop missing observations
 quietly replace `touse' = 0 if missing(`var')
 }
-   qui  include "reghdfe.mata", adopath
 
 
 // /*         NORMALIZE DEPENDENT VARIABLE       */
