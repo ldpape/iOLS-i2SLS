@@ -10,6 +10,7 @@
 {viewerjumpto "Citation" "i2SLS_MP_HDFE##citation"}{...}
 {viewerjumpto "Authors" "i2SLS_MP_HDFE##contact"}{...}
 {viewerjumpto "Examples" "i2SLS_MP_HDFE##examples"}{...}
+{viewerjumpto "Description" "i2SLS_MP_HDFE##Testing"}{...}
 {viewerjumpto "Stored results" "i2SLS_MP_HDFE##results"}{...}
 
 {title:Title}
@@ -91,11 +92,11 @@ or in BibTex :
 {p_end}
 {hline}
 {phang2}{cmd:.  use   "http://fmwww.bc.edu/RePEc/bocode/i/ivp_bwt.dta", replace }{p_end}
-{phang2}{cmd:. i2SLS_MP_HDFE bw parity white , endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)  }{p_end}
-{phang2}{cmd:. i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)  absorb(male) robust  }{p_end}
-{phang2}{cmd:. i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)  absorb(male) robust ip }{p_end}
-{phang2}{cmd:. i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)  absorb(male)  ip delta(3)  }{p_end}
-{phang2}{cmd:. i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)  absorb(male) delta(3) limit(1e-5) maximum(100) }{p_end}
+{phang2}{cmd:. i2SLS_MP_HDFE bw parity white male , endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)  }{p_end}
+{phang2}{cmd:. i2SLS_MP_HDFE bw parity white , endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)  absorb(male) robust  }{p_end}
+{phang2}{cmd:. i2SLS_MP_HDFE bw parity white , endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)  absorb(male) robust ip }{p_end}
+{phang2}{cmd:. i2SLS_MP_HDFE bw parity white , endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)  absorb(male)  ip delta(3)  }{p_end}
+{phang2}{cmd:. i2SLS_MP_HDFE bw parity white , endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)  absorb(male) delta(3) limit(1e-5) maximum(100) }{p_end}
 {hline}
 
 
