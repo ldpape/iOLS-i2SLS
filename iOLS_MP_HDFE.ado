@@ -480,7 +480,7 @@ void function loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_
 {
 max = strtoreal(st_local("maximum"))
 lim = strtoreal(st_local("limit"))
-show = strtoreal(st_local("show"))
+show = st_local("show")
 	for (i=1; i<=max;i++) {
 	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	xb_hat = X*beta_initial 
@@ -503,7 +503,7 @@ void function loop_function_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_in
 {
  max = strtoreal(st_local("maximum"))
  lim = strtoreal(st_local("limit"))
- show = (st_local("show"))
+ show = st_local("show")
 	for (i=1; i<=max;i++) {
 	xb_hat_M = PX*beta_initial 
 	xb_hat_N = X*beta_initial
@@ -536,7 +536,7 @@ void function loop_function_ip(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_in
 {
 max = strtoreal(st_local("maximum"))
 lim = strtoreal(st_local("limit"))
-show = (st_local("show"))
+show = st_local("show")
 	for (i=1; i<=max;i++) {
 	diff = y_tilde - Py_tilde 
 	xb_hat = X*beta_initial :+ ln(mean(exp(-X*beta_initial):*y))
