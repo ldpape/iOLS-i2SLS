@@ -61,10 +61,16 @@
 {marker Post-Estimation}{...}
 {title:Post-Estimation}
 
-{pstd} This program generates the following outcome variables:
-{phang2}1. Without fixed effects: {cmd:i2SLS_MP_HDFE_xb_hat} gives {it:X'b} in {it:Y = exp(X'b)U}, and {cmd:i2SLS_MP_HDFE_error} gives {it:U}.{p_end}
-{phang2}2. With fixed effects: {cmd:i2SLS_MP_HDFE_xb_hat} gives {it:X'b + fixed-effects}, and {cmd:i2SLS_MP_HDFE_error} gives {it:U}.{p_end}
-{phang2}3. With the {opt ip} option: {cmd:i2SLS_MP_HDFE_xb_hat} excludes fixed effects (i.e., {it:x1'b} in {it:Y=exp(x1'b + fe)U}), and {cmd:i2SLS_MP_HDFE_error} gives {it:U}.{p_end}
+{pstd} After running {cmd:i2SLS_MP_HDFE}, the following variables are generated depending on the model setup:
+
+{phang2}(i) If no fixed effects are included: {break}
+{cmd:i2SLS_MP_HDFE_xb_hat} stores {it:X'b} in the equation {it:Y = exp(X'b)U}, and {cmd:i2SLS_MP_HDFE_error} stores {it:U}.{p_end}
+
+{phang2}(ii) If fixed effects are included with the {cmd:absorb()} option: {break}
+{cmd:i2SLS_MP_HDFE_xb_hat} stores {it:X'b + fixed-effects}, {cmd:i2SLS_MP_HDFE_fe} stores the fixed effects, and {cmd:i2SLS_MP_HDFE_error} stores {it:U}.{p_end}
+
+{phang2}(iii) If the {cmd:ip} option is used: {break}
+{cmd:i2SLS_MP_HDFE_xb_hat} stores the linear index {it:x1'b}, excluding the fixed effects (i.e., {it:x1'b} in the equation {it:Y=exp(x1'b + fe)U}), and {cmd:i2SLS_MP_HDFE_error} stores {it:U}.{p_end}
 
 {marker authors}{...}
 {title:Authors}
