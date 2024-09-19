@@ -10,7 +10,6 @@
 {viewerjumpto "Citation" "iOLS_MP_HDFE##citation"}{...}
 {viewerjumpto "Authors" "iOLS_MP_HDFE##contact"}{...}
 {viewerjumpto "Examples" "iOLS_MP_HDFE##examples"}{...}
-{viewerjumpto "Description" "iOLS_MP_HDFE##Testing"}{...}
 {viewerjumpto "Stored results" "iOLS_MP_HDFE##results"}{...}
 
 {title:Title}
