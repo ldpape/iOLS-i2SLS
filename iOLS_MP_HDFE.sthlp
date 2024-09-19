@@ -1,17 +1,17 @@
 {smcl}
-{* *! version 1.0 22march2021}
-
-{vieweralsosee "[R] poisson" "help poisson"}
-{vieweralsosee "reghdfe" "help reghdfe"}
-{vieweralsosee "ppml" "help ppml"}
-{vieweralsosee "ppmlhdfe" "help ppmlhdfe"}
-
-{viewerjumpto "Syntax" "iOLS_MP_HDFE##syntax"}
-{viewerjumpto "Description" "iOLS_MP_HDFE##description"}
-{viewerjumpto "Citation" "iOLS_MP_HDFE##citation"}
-{viewerjumpto "Authors" "iOLS_MP_HDFE##contact"}
-{viewerjumpto "Examples" "iOLS_MP_HDFE##examples"}
-{viewerjumpto "Stored results" "iOLS_MP_HDFE##results"}
+{* *! version 1.0 22march2021}{...}
+{vieweralsosee "[R] poisson" "help poisson"}{...}
+{vieweralsosee "" "--"}{...}
+{vieweralsosee "reghdfe" "help reghdfe"}{...}
+{vieweralsosee "ppml" "help ppml"}{...}
+{vieweralsosee "ppmlhdfe" "help ppmlhdfe"}{...}
+{viewerjumpto "Syntax" "iOLS_MP_HDFE##syntax"}{...}
+{viewerjumpto "Description" "iOLS_MP_HDFE##description"}{...}
+{viewerjumpto "Citation" "iOLS_MP_HDFE##citation"}{...}
+{viewerjumpto "Authors" "iOLS_MP_HDFE##contact"}{...}
+{viewerjumpto "Examples" "iOLS_MP_HDFE##examples"}{...}
+{viewerjumpto "Description" "iOLS_MP_HDFE##Testing"}{...}
+{viewerjumpto "Stored results" "iOLS_MP_HDFE##results"}{...}
 
 {title:Title}
 
