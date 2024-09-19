@@ -20,7 +20,6 @@
 {p2colreset}{...}
 
 {pstd}{cmd:Introduction} This program implements iterated Ordinary Least Squares for Gamma Pseudo Maximum Likelihood (GPML), as described by {browse "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3444996":Bellego, Benatia, and Pape (2021)}. {cmd: iOLS_MP_HDFE} is a solution to the problem of the log of zero.  This method relies on running the "reghdfe" function iteratively. The method depends on the rate of convergence, which you can increase with the option ", delta(number)" (set to 1 initially).
-
 {pstd}{cmd:Fixed-Effects:} This package takes a within-transformation to difference out high-dimensional fixed effects. To do so, it relies on the HDFE package (used in reghdfe) developed by {browse "http://scorreia.com/research/hdfe.pdf": Sergio Correia (2017)}. The syntax follows from reghdfe.
 
 {pstd}{cmd:Note:} This program automatically checks for the presence of seperation, which would preclude the existence of estimates, using the method proposed by {browse "https://arxiv.org/pdf/1903.01633.pdf": Correia, Guimarães, and Zylkin (2019) }. This results in dropping problematic observations. It is worth checking sample consistency.
@@ -38,7 +37,6 @@
 {synopt:{it:depvar}} Dependent variable{p_end}
 {synopt:{it:indepvars}} List of exogenous explanatory variables {p_end}
 {synopt:{it:fixed-effects}} List of categorical variables which are to be differenced-out {p_end}
-
 {synoptline}
 {p2colreset}{...}
 
@@ -46,16 +44,9 @@
 {synoptset 22 tabbed}{...}
 {synopthdr}
 {synoptline}
-
-{syntab: fixed-effects}
-{synopt:{opt delta}{cmd:(}{help iOLS_MP_HDFE##absorb:absorb}{cmd:)}}{it:absorb} This option allows you to include the categorical variables to treat as fixed effects.
-
+{synopt:{opt absorb}{cmd:(}{help iOLS_MP_HDFE##absorb:absorb}{cmd:)}}{it:absorb} This option allows you to include the categorical variables to treat as fixed effects.
 {synopt:{opt vce}{cmd:(}{help iOLS_MP_HDFE##opt_vce:vcetype}{cmd:)}}{it:vcetype} May be classical if unspecified (assuming homoskedasticity), {opt r:obust}, or vce({opt cl:uster} varlist) (allowing two- and multi-way clustering)
-
-{syntab: delta}
 {synopt:{opt delta}{cmd:(}{help iOLS_MP_HDFE##delta:delta}{cmd:)}}{it:delta} is any strictly positive constant. Set to 1 if unspecified. 
-
-{syntab: Convergence}
 {synopt:{opt limit}{cmd:(}{help iOLS_MP_HDFE##limit:limit}{cmd:)}} Choose convergence criteria in terms of mean squared difference between two set of paramter estimates between two iterations. Set to 1e-3 if unspecified.
 {synopt:{opt maximum}{cmd:(}{help iOLS_MP_HDFE##maximum:maximum}{cmd:)}} Maximum number of iterations. Set to 10,000 if unspecified.
 {synopt:{opt show}{cmd:(}{help iOLS_MP_HDFE##show:show}{cmd:)}} This option shows the maximum absolute deviations between two iterations.  Convergence is assured when this number decreases regularly down to the convergence criteria  (1e-3) 
