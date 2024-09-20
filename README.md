@@ -1,6 +1,6 @@
 # iOLS-i2SLS : This repository includes all available STATA programs of iterated Ordinary Least Squares and iterated Two Stage Least Squares
 
-This repository includes code for iOLS_MP_HDFE, i2SLS_MP_HDFE, iOLS_MP_HDFE_test, i2SLS_MP_HDFE, ppmlhdfe_test , popular_fix_test as described in Bellégo, Benatia and Pape (2021).
+This repository includes code for iOLS_MP_HDFE and i2SLS_MP_HDFE as described in Bellégo, Benatia and Pape (2021).
 
 >ssc install hdfe
 
