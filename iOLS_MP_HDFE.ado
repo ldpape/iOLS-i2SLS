@@ -9,7 +9,6 @@
 * 20/4/2022 : quiet collinearity + SHOW
 * 22/05/2024 : added options to fix delta, rescaled outcome variables, discovered that ln() and log() have different precision levels, changed the iOLS transformation , allowed for noabsorb and absorb in the same package, added convergence checks, added offset, allowed for  increase precision in HDFE as in PPMLHDFE, changed "starting value" of HDFE calls, changed parameter evolution norm 
 * 25/05/2024 : create mata functions to increase speed
-clear all 
 mata: mata set matacache 5000
 mata: mata set matafavor speed
 mata: mata set matastrict off
