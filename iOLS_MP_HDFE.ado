@@ -488,11 +488,16 @@ show = st_local("show")
 	beta_new = invXX*cross(X,y_tilde)
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
-	beta_initial = beta_new
+	if (past_criteria<criteria) display("Evidence of non-convergence : increasing delta to:") ;;
+	if (past_criteria<criteria) delta = delta*1.1 ;;
+	if (past_criteria<criteria) delta ;;
+	if (past_criteria<criteria) criteria = past_criteria ;;
+	if (past_criteria>criteria) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
-	if (past_criteria<criteria) display("Evidence of non-convergence : if repeated, increase delta(number)")
+	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
 end 
@@ -519,11 +524,14 @@ void function loop_function_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_in
 	beta_new = invPXPX*cross(PX,Py_tilde)
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
-	beta_initial = beta_new
+	if (past_criteria<criteria) display("Evidence of non-convergence : increasing delta to:") ;;
+	if (past_criteria<criteria) delta = delta*1.1 ;;
+	if (past_criteria<criteria) delta ;;
+	if (past_criteria<criteria) criteria = past_criteria ;;
+	if (past_criteria>criteria) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
-	if (past_criteria<criteria) display("Evidence of non-convergence : if repeated, increase delta(number)") ;;
 	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
 	if (mod(i,10)==0) 	criteria  ;;
 	}
@@ -549,11 +557,14 @@ show = st_local("show")
 	beta_new = invPXPX*cross(PX,Py_tilde)
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
-	beta_initial = beta_new
+	if (past_criteria<criteria) display("Evidence of non-convergence : increasing delta to:") ;;
+	if (past_criteria<criteria) delta = delta*1.1 ;;
+	if (past_criteria<criteria) delta ;;
+	if (past_criteria<criteria) criteria = past_criteria ;;
+	if (past_criteria>criteria) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
-	if (past_criteria<criteria) display("Evidence of non-convergence : if repeated, increase delta(number)") ;;
 	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
 	if (mod(i,10)==0) 	criteria  ;;
 	}
