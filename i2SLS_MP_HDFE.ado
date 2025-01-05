@@ -662,7 +662,3 @@ show = (st_local("show"))
 	}
 }
 end
-
- use "C:\Users\ldpap\Downloadslog_gravity\Log of Gravity.dta" ,replace
-  
-  
