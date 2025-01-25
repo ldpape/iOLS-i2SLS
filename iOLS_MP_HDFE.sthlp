@@ -50,19 +50,15 @@ It addresses the problem of the log of zero by iteratively running the {cmd:regh
 {synoptline}
 {synopt:{opt absorb}{cmd:(}{help iOLS_MP_HDFE##absorb:absorb}{cmd:)}} Categorical variables to treat as fixed effects {p_end}
 {synopt:{opt vce}{cmd:(}{help iOLS_MP_HDFE##opt_vce:vcetype}{cmd:)}} Specify variance-covariance estimator: {opt robust}, {opt cluster} for clustering {p_end}
-{synopt:{opt delta}{cmd:(}{help iOLS_MP_HDFE##delta:delta}{cmd:)}} Strictly positive constant, default 1 {p_end}
 {synopt:{opt limit}{cmd:(}{help iOLS_MP_HDFE##limit:limit}{cmd:)}} Convergence criteria (default: 1e-3) {p_end}
 {synopt:{opt maximum}{cmd:(}{help iOLS_MP_HDFE##maximum:maximum}{cmd:)}} Maximum iterations (default: 10,000) {p_end}
-{synopt:{opt show}{cmd:(}{help iOLS_MP_HDFE##show:show}{cmd:)}} Show maximum deviations between iterations {p_end}
-{synopt:{opt ip}{cmd:(}{help iOLS_MP_HDFE##ip:ip}{cmd:)}} Use transformation immune to the incidental parameter problem {p_end}
 
 {marker postestimation}{...}
 {title:Post-Estimation}
 
 {pstd} The program generates outcome variables:{p_end}
 {phang2}1. Without fixed effects: {cmd:iOLS_MP_HDFE_xb_hat} = {cmd:X'b} and {cmd:iOLS_MP_HDFE_error} = U.{p_end}
-{phang2}2. With fixed effects: {cmd:iOLS_MP_HDFE_fe} are fixed effects, {cmd:iOLS_MP_HDFE_error} = U, and {cmd:iOLS_MP_HDFE_xb_hat} = {cmd:X'b + fixed effects}. {p_end}
-{phang2}3. Using {cmd:ip} option: {cmd:iOLS_MP_HDFE_error} = U, {cmd:iOLS_MP_HDFE_xb_hat} excludes fixed effects.{p_end}
+{phang2}2. With fixed effects:  {cmd:iOLS_MP_HDFE_error} =  U =  {cmd:y*exp(-M_d X'b)} .{p_end}. {p_end}
 
 {marker citation}{...}
 {title:Citation}
@@ -80,9 +76,6 @@ Bellégo, Christophe, Benatia, David, and Pape, Louis-Daniel, Dealing with Logs 
 {phang2}{cmd:. sysuse auto.dta, replace}{p_end}
 {phang2}{cmd:. xi: iOLS_MP_HDFE price mpg i.foreign, robust}{p_end}
 {phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) robust}{p_end}
-{phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) ip robust}{p_end}
-{phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) ip robust delta(3)}{p_end}
-{phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) ip robust delta(3) limit(1e-5) maximum(100)}{p_end}
 
 {marker results}{...}
 {title:Stored Results}
