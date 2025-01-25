@@ -128,7 +128,6 @@ else {
 	quietly: gen _COPY = `touse'
     ereturn post beta_final Sigma_tild , obs(`e(N)') depname(`depvar') esample(`touse')  dof(`dof') 
 /*         RESTORE PRE-NORMALIZED VALUES       */	
-	mata : ui = -(y*`y_max'):*exp(-xb_hat)
     mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_error"), "_COPY", ui)
     mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_xb_hat"),"_COPY", xb_hat)
 	cap drop i2SLS_MP_HDFE_xb_hat
