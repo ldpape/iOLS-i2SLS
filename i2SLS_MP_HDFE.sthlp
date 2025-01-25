@@ -55,8 +55,6 @@ It addresses the problem of the log of zero by iteratively running the {cmd:regh
 {synopt:{opt vce(vcetype)}} Specifies the variance-covariance estimator: robust or clustered{p_end}
 {synopt:{opt limit(#)}} Convergence criterion based on mean squared difference (defaults to 1e-3){p_end}
 {synopt:{opt maximum(#)}} Maximum number of iterations (defaults to 10,000){p_end}
-{synopt:{opt show}} Displays maximum absolute deviations between iterations{p_end}
-{synopt:{opt ip}} Uses transformation immune to the incidental parameter problem{p_end}
 {synoptline}
 
 {marker Post-Estimation}{...}
@@ -68,10 +66,7 @@ It addresses the problem of the log of zero by iteratively running the {cmd:regh
 {cmd:i2SLS_MP_HDFE_xb_hat} stores {it:X'b} in the equation {it:Y = exp(X'b)U}, and {cmd:i2SLS_MP_HDFE_error} stores {it:U}.{p_end}
 
 {phang2}(ii) If fixed effects are included with the {cmd:absorb()} option: {break}
-{cmd:i2SLS_MP_HDFE_xb_hat} stores {it:X'b + fixed-effects}, {cmd:i2SLS_MP_HDFE_fe} stores the fixed effects, and {cmd:i2SLS_MP_HDFE_error} stores {it:U}.{p_end}
-
-{phang2}(iii) If the {cmd:ip} option is used: {break}
-{cmd:i2SLS_MP_HDFE_xb_hat} stores the linear index {it:x1'b}, excluding the fixed effects (i.e., {it:x1'b} in the equation {it:Y=exp(x1'b + fe)U}), and {cmd:i2SLS_MP_HDFE_error} stores {it:U}.{p_end}
+{cmd:i2SLS_MP_HDFE_xb_hat} stores {cmd:i2SLS_MP_HDFE_error} stores {it:y*exp(- M_d X*beta)}.{p_end}
 
 {marker authors}{...}
 {title:Authors}
@@ -102,9 +97,7 @@ month={Sep}}
 {phang2}{cmd:. use "http://fmwww.bc.edu/RePEc/bocode/i/ivp_bwt.dta", replace}{p_end}
 {phang2}{cmd:. i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)}{p_end}
 {phang2}{cmd:. i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) robust}{p_end}
-{phang2}{cmd:. i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) robust ip}{p_end}
-{phang2}{cmd:. i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) ip delta(3)}{p_end}
-{phang2}{cmd:. i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) delta(3) limit(1e-5) maximum(100)}{p_end}
+{phang2}{cmd:. i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) limit(1e-3) maximum(100)}{p_end}
 
 {marker results}{...}
 {title:Stored Results}
