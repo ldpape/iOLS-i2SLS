@@ -218,6 +218,7 @@ else {
 	mata : xb_hat = .
 	mata:  xb_hat_M = .
 	mata: xb_hat_N = .
+	mata : diff = .
 	mata:  fe = .
 	mata : beta_new = .
 	mata : past_criteria = .
