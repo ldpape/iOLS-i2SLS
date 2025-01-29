@@ -229,6 +229,8 @@ else {
 	mata: beta_history = .
 	mata: beta_contemporary = .
 	mata :stop_crit = 0
+	mata: xb_hat_N = .
+	mata : diff = .
 	mata : scale_delta = max(y:*exp(-PX*beta_initial))
 /*          LOOP      */	
 	mata: loop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria,stop_crit,k,beta_history,beta_contemporary,scale_delta)
