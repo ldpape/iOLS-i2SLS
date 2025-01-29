@@ -128,10 +128,10 @@ else {
 	quietly: gen _COPY = `touse'
     ereturn post beta_final Sigma_tild , obs(`e(N)') depname(`depvar') esample(`touse')  dof(`dof') 
 /*         RESTORE PRE-NORMALIZED VALUES       */	
-    mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_error"), "_COPY", ui)
-    mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_xb_hat"),"_COPY", xb_hat)
 	cap drop i2SLS_MP_HDFE_xb_hat
 	cap drop i2SLS_MP_HDFE_error
+    mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_error"), "_COPY", ui)
+    mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_xb_hat"),"_COPY", xb_hat)
 	cap drop y_tild
 	cap drop _COPY
 /*         EXPORT CONSTANTS       */	
