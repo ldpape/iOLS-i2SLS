@@ -1,22 +1,9 @@
-* 15/12/2021 : corrected "cross" in S.E. which is complicated by the symmetrization
-* 15/12/2021 : corrected iteration logical specification
-* 16/12/2021 : corrected absorb from varlist to string, as in ppmlhdfe
-* 22/12/2021 : coded with matrix multiplication instead of pre-canned program
-* 22/12/2021 : added convergence control (limit and maximum)
-* 04/01/2022 : added constant + checks for convergence + corrected problem with collinear variables affecting final 2SLS
-* 21/01/2022 : added symmetrization + check for singleton / existence using PPML + correction S.E. + syntax change
-* 22/01/2022 : apparently, new syntax does not drop missing obs.
-*3/2/2022 : drop preserve + add singleton selection based on Correia, Zylkin and Guimaraes.
-* 20/4/2022 : quietly collinearity + SHOW option 
-* 22/05/2024 : added options to fix delta, rescaled outcome variables, discovered that ln() and log() have different precision levels, changed the iOLS transformation , allowed for noabsorb and absorb in the same package, added convergence checks, added offset, allowed for  increase precision in HDFE as in PPMLHDFE, changed "starting value" of HDFE calls, changed parameter evolution norm 
-* 25/05/2024 : create mata functions to increase speed
-* 25/01/2025 : changed background algorithm to iols_d
 mata: mata set matacache 5000
 mata: mata set matafavor speed
 mata: mata set matastrict off
 cap program drop i2SLS_MP_HDFE
 program define i2SLS_MP_HDFE, eclass
-syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-3) from(name)   nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string)]              
+syntax varlist [if] [in]  [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-3) from(name) nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string) aweight(varlist)  ]              
 /*         PARSE TEXT       */
 	cap drop _reg*
 	marksample touse
@@ -80,8 +67,19 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	mata : st_view(Z,.,"`instr_list'","`touse'")
 	mata : st_view(y_tilde,.,"y_tild","`touse'")
 	mata : st_view(y,.,"`depvar'","`touse'")
-	mata : invPzX = invsym(cross(X,Z)*invsym(cross(Z,Z))*cross(Z,X))*cross(X,Z)*invsym(cross(Z,Z))
+	mata : w = . 
+/*         WEIGHTED REGRESSION OPTION      */
+if "`aweight'"!=""{
+	mata : st_view(w,.,"`aweight'","`touse'")
+	di in red "Analytical Weights - each obseration is weighted by : sqrt(w)"
+}	
 /*         SET INITIAL VALUES       */	
+	if "`aweight'"==""{
+		mata : invPzX = invsym(cross(X,Z)*invsym(cross(Z,Z))*cross(Z,X))*cross(X,Z)*invsym(cross(Z,Z))
+	}
+	if "`aweight'"!=""{
+	mata : invPzX = invsym(cross(X,w,Z)*invsym(cross(Z,w,Z))*cross(Z,w,X))*cross(X,w,Z)*invsym(cross(Z,w,Z))
+	}
 capture	 confirm matrix `from'
 if _rc==0 {
 	mata : beta_initial = st_matrix("`from'")
@@ -95,11 +93,19 @@ else {
 	mata : xb_hat = .
 	mata : past_criteria = .
 	mata : beta_new = .
-	local k = 1
+	mata: k = .
+	mata: beta_history = .
+	mata: beta_contemporary = .
+	mata: stop_crit = 0
+	mata : alpha = . 
+	mata: c_hat = . 
+	mata: scale_delta = max(y:*exp(-X*beta_initial))
+	local k = 0
 	local eps = 1000	
 	mata : criteria = 10000
 /*         iOLS LOOP       */	
-	mata:  ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria)
+	mata:  ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w)
+	mata:  ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
 	mata: beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	mata: xb_hat = X*beta_initial
@@ -109,9 +115,14 @@ else {
 	mata: st_local("delta", strofreal(delta))
 	cap drop y_tild
 	mata: st_store(., st_addvar("double", "y_tild"), "`touse'", y_tilde)
-    quietly: ivreg2 y_tild `exogenous' (`endog' = `instr') [`weight'`exp'] if `touse', `option'
+	if "`aweight'"==""{
+		quietly: ivreg2 y_tild `exogenous' (`endog' = `instr') if `touse', `option'
+	}
+	else {
+		quietly: ivreg2 y_tild `exogenous' (`endog' = `instr') [aw=`aweight'] if `touse', `option'
+	}
 	local dof `e(Fdf2)'
-	matrix beta_final = e(b) // 	mata: st_matrix("beta_final", beta_new)
+	matrix beta_final = e(b) 
 	matrix Sigma = e(V)
 	mata : Sigma_hat = st_matrix("Sigma")
 	mata : Sigma_0 = (cross(X,Z)*invsym(cross(Z,Z))*cross(Z,X):/rows(X))*Sigma_hat*(cross(X,Z)*invsym(cross(Z,Z))*cross(Z,X):/rows(X)) // recover original HAC 
@@ -127,9 +138,9 @@ else {
 	cap drop _COPY
 	quietly: gen _COPY = `touse'
     ereturn post beta_final Sigma_tild , obs(`e(N)') depname(`depvar') esample(`touse')  dof(`dof') 
-/*         RESTORE PRE-NORMALIZED VALUES       */	
+/*         RESTORE PRE-NORMALIZED VALUES       */
 	cap drop i2SLS_MP_HDFE_xb_hat
-	cap drop i2SLS_MP_HDFE_error
+	cap drop i2SLS_MP_HDFE_error	
     mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_error"), "_COPY", ui)
     mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_xb_hat"),"_COPY", xb_hat)
 	cap drop y_tild
@@ -195,13 +206,17 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	cap drop M0_*
 	cap drop Y0_*
 	cap drop xb_hat*
+/*         ANALYTIC WEIGHTS      */	
+	if "`aweight'"!=""{
+		di in red "Analytical Weights - each obseration is weighted by : sqrt(w)"
+		local aw "aw = `aweight'"
+	}
 	if "`alt_varlist'"=="" { // case with no X , only FE 
-	quietly hdfe `endog' if `touse' [`weight'] , absorb(`absorb') generate(E0_) acceleration(sd)   transform(sym)
-	quietly hdfe `instr' if `touse' [`weight'] , absorb(`absorb') generate(Z0_) acceleration(sd)   transform(sym)
-	//quietly gen `y_tild' = log(max(1/`max_y',`depvar2')) if `touse'
+	quietly hdfe `endog' if `touse' [`aw'] , absorb(`absorb') generate(E0_) acceleration(sd)   transform(sym)
+	quietly hdfe `instr' if `touse' [`aw'] , absorb(`absorb') generate(Z0_) acceleration(sd)   transform(sym)
 	cap drop y_tild
-quietly gen y_tild = ln(1+`depvar') if `touse'
-	quietly	hdfe y_tild  if `touse' [`weight'] , absorb(`absorb') generate(Y0_)  tolerance(1e-3)  acceleration(sd)   transform(sym)
+	quietly gen y_tild = ln(1+`depvar') if `touse'
+	quietly	hdfe y_tild  if `touse' [`aw'] , absorb(`absorb') generate(Y0_)  tolerance(1e-3)  acceleration(sd)   transform(sym)
 	local df_a = e(df_a)
 	local dof_hdfe = e(df_a)
 	mata : X=.
@@ -218,12 +233,12 @@ quietly gen y_tild = ln(1+`depvar') if `touse'
 	mata : st_view(y,.,"`depvar'","`touse'")	
 	}
 	else { // standard case with both X and FE
-	quietly hdfe `alt_varlist'  if `touse'  [`weight'] , absorb(`absorb') generate(M0_)
-	quietly hdfe `endog'  if `touse'  [`weight'] , absorb(`absorb') generate(E0_)
-	quietly hdfe `instr'  if `touse'  [`weight'] , absorb(`absorb') generate(Z0_)
+	quietly hdfe `alt_varlist'  if `touse'  [`aw'] , absorb(`absorb') generate(M0_) acceleration(sd)   transform(sym)
+	quietly hdfe `endog'  if `touse'  [`aw'] , absorb(`absorb') generate(E0_) acceleration(sd)   transform(sym)
+	quietly hdfe `instr'  if `touse'  [`aw'] , absorb(`absorb') generate(Z0_) acceleration(sd)   transform(sym)
 	cap drop y_tild  
 	quietly gen y_tild = ln(1+`depvar') if `touse'
-	quietly	hdfe y_tild  if `touse'  [`weight'] , absorb(`absorb') generate(Y0_)  tolerance(1e-3)  acceleration(sd)   transform(sym) 
+	quietly	hdfe y_tild  if `touse'  [`aw'] , absorb(`absorb') generate(Y0_)  tolerance(1e-3)  acceleration(sd)   transform(sym) 
 	local df_a = e(df_a)
 	local dof_hdfe = e(df_a)
 	mata : X=.
@@ -263,11 +278,12 @@ else {
 	mata: k = .
 	mata: beta_history = .
 	mata: beta_contemporary = .
+	mata: c_hat = .
 	mata: stop_crit = 0
 	mata: scale_delta = max(y:*exp(-PX*beta_initial))
 	local almost_conv = 1e-3
 /*          LOOP      */	
-mata: ivloop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,stop_crit,k,beta_history,beta_contemporary,scale_delta)
+mata: ivloop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,beta_history, c_hat, beta_contemporary, stop_crit,scale_delta)
 mata: ivloop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
 	mata: ui = y:*exp(-xb_hat_M)
@@ -285,7 +301,12 @@ mata: ivloop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_ha
 	quietly	rename E0_`var' `var'
 	}
 cap _crcslbl Y0_ `depvar' // label Y0 correctly
-quietly: ivreg2 Y0_ `alt_varlist' (`endog' = `instr') [`weight'`exp'] if `touse' , `option' noconstant   // standard case with X and FE 
+	if "`aweight'" == ""{
+quietly: ivreg2 Y0_ `alt_varlist' (`endog' = `instr')  if `touse' , `option' noconstant   // standard case with X and FE 
+	}
+	else {
+quietly: ivreg2 Y0_ `alt_varlist' (`endog' = `instr') [aw = `aweight'] if `touse' , `option' noconstant   // standard case with X and FE 		
+	}
 local df_r = e(Fdf2) - `df_a'
  if "`cluster'" !="" {
  local df_r = e(Fdf2)
@@ -319,8 +340,6 @@ local df_r = e(Fdf2) - `df_a'
 	cap drop _COPY
 	quietly: gen _COPY = `touse'
     ereturn post beta_final Sigma_tild , obs(`=e(N)') depname(`depvar') esample(`touse')  dof(`df_r')
-	cap drop i2SLS_MP_HDFE_xb_hat
-	cap drop i2SLS_MP_HDFE_fe
 	cap drop i2SLS_MP_HDFE_error
 	cap drop _reghdfe*
 	cap drop y_tild
@@ -346,149 +365,85 @@ ereturn display
 
 
 end
-
+cap: mata: mata drop ivloop_function_D_nofe() 
 cap: mata: mata drop ivloop_function_nofe()
-cap: mata: mata drop ivloop_function_fe() 
 cap: mata: mata drop ivloop_function_D() 
 cap: mata: mata drop ivloop_function_D_fe() 
-cap: mata: mata drop ivloop_function_ip() 
+
 
 mata:
-void function ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria)
+void function ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w)
 {
 max = strtoreal(st_local("maximum"))
 lim = strtoreal(st_local("limit"))
 show = (st_local("show"))
+weight = st_local("aweight")
+ k = 0
+ delta = 1
+ while (stop_crit == 0) {
+ 	beta_history = beta_new 
+	for (i=1; i<=max;i++) {
+	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
+	xb_hat = X*beta_initial 
+	c_hat = mean(log(y :+ delta:*exp(xb_hat))) :- mean(xb_hat)
+	y_tilde = log(y :+ delta:*exp(xb_hat)) :- c_hat
+	if (weight=="")  beta_new = invPzX*cross(Z,y_tilde) ;;
+	if (weight!="") 	beta_new = invPzX*cross(Z, w , y_tilde)  ;; 
+	past_criteria = criteria
+	criteria = max(abs(beta_new:-beta_initial))
+	if (past_criteria<criteria) delta = delta*1.1 ;;
+	if (past_criteria<criteria) criteria = past_criteria ;;
+	if (past_criteria>criteria) beta_initial = beta_new ;;
+	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
+ 	if (criteria < lim) i=max+1;; // puts an end to the loop 
+	if (show != "") criteria;;
+	if (i==1) display("Max. Abs. Deviation:") ;;
+	if (mod(i,50)==0) 	criteria  ;;
+	}
+k = k + 1
+beta_contemporary = beta_new 
+stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
+if (stop_crit==0) delta = exp(k):*scale_delta ;;
+	}
+}
+end
+
+mata:
+void function ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
+{
+max = strtoreal(st_local("maximum"))
+lim = strtoreal(st_local("limit"))
+show = (st_local("show"))
+weight = st_local("aweight")
 	for (i=1; i<=max;i++) {
 	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	xb_hat = X*beta_initial
 	y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat  
-	 beta_new = invPzX*cross(Z,y_tilde)
+	if (weight=="")  beta_new = invPzX*cross(Z,y_tilde) ;;
+ 	if (weight!="") 	beta_new = invPzX*cross(Z, w , y_tilde)  ;; 
 	 past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) display("Evidence of non-convergence : increasing delta to:") ;;
 	if (past_criteria<criteria) delta = delta*1.1 ;;
-	if (past_criteria<criteria) delta ;;
 	if (past_criteria<criteria) criteria = past_criteria ;;
 	if (past_criteria>criteria) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
-	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
-	if (mod(i,10)==0) 	criteria  ;;
+	if (i==1) display("Max. Abs. Deviation:") ;;
+	if (mod(i,50)==0) 	criteria  ;;
 	}
 }
 end
 
 
-mata:
-void function ivloop_function_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
-{
-	max = strtoreal(st_local("maximum"))
-lim = strtoreal(st_local("limit"))
-show = (st_local("show"))
-	for (i=1; i<=max;i++) {
-	xb_hat_M = PX*beta_initial 
-	xb_hat_N = X*beta_initial
-	diff = y_tilde - Py_tilde
-	fe = diff + xb_hat_M - xb_hat_N
-	xb_hat =  xb_hat_N + fe   :+ ln(mean(y:*exp(-xb_hat_N - fe)))
-    y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat 
-	stata("cap drop y_tild")
-	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
-	stata("cap drop Y0_")
-    stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  
-	st_view(Py_tilde,.,"Y0_",touse)
-	beta_new = invPzX*cross(PZ,Py_tilde)
-	past_criteria = criteria
-	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) display("Evidence of non-convergence : increasing delta to:") ;;
-	if (past_criteria<criteria) delta = delta*1.1 ;;
-	if (past_criteria<criteria) delta ;;
-	if (past_criteria<criteria) criteria = past_criteria ;;
-	if (past_criteria>criteria) beta_initial = beta_new ;;
-	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
- 	if (criteria < lim) i=max+1;; // puts an end to the loop 
-	if (show != "") criteria;;
-	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
-	if (mod(i,10)==0) 	criteria  ;;
-	}
-}
-end
-
 
 mata:
-void function ivloop_function_ip(string scalar touse, y,xb_hat,PZ,beta_initial,X,diff,Py_tilde,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
+void function ivloop_function_D(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,beta_history, c_hat, beta_contemporary, stop_crit,scale_delta)
 {
 max = strtoreal(st_local("maximum"))
 lim = strtoreal(st_local("limit"))
 show = (st_local("show"))
-	for (i=1; i<=max;i++) {
-	diff = y_tilde - Py_tilde
-	xb_hat = X*beta_initial :+ ln(mean(exp(-X*beta_initial):*y))
-	y_tilde = y:*exp(-xb_hat):/(1 :+ delta) + xb_hat  
-	stata("cap drop y_tild")
-	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
-	stata("cap drop Y0_")
-    stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)   tolerance(\`almost_conv')  acceleration(sd)   transform(sym) ")  
-	st_view(Py_tilde,.,"Y0_",touse)
-	beta_new = invPzX*cross(PZ,Py_tilde)
-	past_criteria = criteria
-	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) display("Evidence of non-convergence : increasing delta to:") ;;
-	if (past_criteria<criteria) delta = delta*1.1 ;;
-	if (past_criteria<criteria) delta ;;
-	if (past_criteria<criteria) criteria = past_criteria ;;
-	if (past_criteria>criteria) beta_initial = beta_new ;;
-	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
- 	if (criteria < lim) i=max+1;; // puts an end to the loop 
-	if (show != "") criteria;;
-	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
-	if (mod(i,10)==0) 	criteria  ;;
-	}
-}
-end
-
-
-
-mata:
-void function ivloop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
-{
-max = strtoreal(st_local("maximum"))
-lim = strtoreal(st_local("limit"))
-show = (st_local("show"))
-	for (i=1; i<=max;i++) {
-	xb_hat_M = PX*beta_initial 
-	diff = y_tilde - Py_tilde
-    y_tilde = ((y:*exp(-xb_hat_M) :- 1):/(1:+delta)) + xb_hat_M 
-	stata("cap drop y_tild")
-	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
-	stata("cap drop Y0_")
-    stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  
-	st_view(Py_tilde,.,"Y0_",touse)
-	beta_new = invPzX*cross(PZ,Py_tilde)
-	past_criteria = criteria
-	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) delta = delta*1.1 ;;
-	if (past_criteria<criteria) criteria = past_criteria ;;
-	if (past_criteria>criteria) beta_initial = beta_new ;;
-	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
- 	if (criteria < lim) i=max+1;; // puts an end to the loop 
-	if (show != "") criteria;;
-	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
-	if (mod(i,10)==0) 	criteria  ;;
-	}
-}
-end
-
-
-
-mata:
-void function ivloop_function_D(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,stop_crit,k,beta_history,beta_contemporary,scale_delta)
-{
-max = strtoreal(st_local("maximum"))
-lim = strtoreal(st_local("limit"))
-show = (st_local("show"))
+weight = st_local("aweight")
  k = 0
  delta = 1
  while (stop_crit == 0) {
@@ -502,25 +457,58 @@ show = (st_local("show"))
 	stata("cap drop y_tild")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde - diff)
 	stata("cap drop Y0_")
-    stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  
+	if (weight=="") stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  ;;
+    if (weight!="") stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  ;;
 	st_view(Py_tilde,.,"Y0_",touse)
 	beta_new = invPzX*cross(PZ,Py_tilde)
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
 	if (past_criteria<criteria) delta = delta*1.1 ;;
- 	if (past_criteria<criteria) delta ;;
 	if (past_criteria<criteria) criteria = past_criteria ;;
 	if (past_criteria>criteria) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
-	if (mod(i,10)==0) display("Max. Abs. Deviation:") ;;
-	if (mod(i,10)==0) 	criteria  ;;
+	if (i==1) display("Max. Abs. Deviation:") ;
+	if (mod(i,50)==0) 	criteria  ;;
 	}
 k = k + 1
 beta_contemporary = beta_new 
 stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
 if (stop_crit==0) delta = exp(k):*scale_delta ;;
+	}
+}
+end
+
+
+mata:
+void function ivloop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
+{
+max = strtoreal(st_local("maximum"))
+lim = strtoreal(st_local("limit"))
+show = (st_local("show"))
+weight = st_local("aweight")
+	for (i=1; i<=max;i++) {
+	xb_hat_M = PX*beta_initial 
+	diff = y_tilde - Py_tilde
+    y_tilde = ((y:*exp(-xb_hat_M) :- 1):/(1:+delta)) + xb_hat_M 
+	stata("cap drop y_tild")
+	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
+	stata("cap drop Y0_")
+    if (weight=="") stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  ;;
+    if (weight!="") stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  ;;
+	st_view(Py_tilde,.,"Y0_",touse)
+	beta_new = invPzX*cross(PZ,Py_tilde)
+	past_criteria = criteria
+	criteria = max(abs(beta_new:-beta_initial))
+	if (past_criteria<criteria) delta = delta*1.1 ;;
+	if (past_criteria<criteria) criteria = past_criteria ;;
+	if (past_criteria>criteria) beta_initial = beta_new ;;
+	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
+ 	if (criteria < lim) i=max+1;; // puts an end to the loop 
+	if (show != "") criteria;;
+	if (i==1) display("Max. Abs. Deviation: ") ;;
+	if (mod(i,50)==0) 	criteria  ;;
 	}
 }
 end
