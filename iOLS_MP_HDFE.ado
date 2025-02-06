@@ -240,7 +240,7 @@ else {
 	mata: loop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
 	mata: loop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
- 	mata: ui = y:*exp(-xb_hat_M)
+ 	mata: ui = y:*exp(-xb_hat_M :- log(mean( y:*exp(-xb_hat_M  ))))
 	mata: weight =  ui :/ (1 :+ delta)
   	foreach var in `var_list' {     // rename variables for last ols
 	quietly	rename `var' TEMP_`var'
@@ -374,9 +374,10 @@ void function loop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_
  show = st_local("show")
  weight = st_local("aweight")
 	for (i=1; i<=max;i++) {
- 	xb_hat_M = PX*beta_initial 
+ 	xb_hat_M = PX*beta_initial
+	alpha = log(mean(y:*exp(-xb_hat_M)))
 	diff = y_tilde - Py_tilde
-	y_tilde = ((y:*exp(-xb_hat_M) :- 1):/(1:+delta)) :+ xb_hat_M 
+	y_tilde = ((y:*exp(-xb_hat_M :- alpha) :- 1):/(1:+delta)) :+ xb_hat_M  :+ alpha
 	stata("cap drop y_tild")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
 	stata("cap drop Y0_")
@@ -441,4 +442,3 @@ if (stop_crit==0) delta = exp(k):*scale_delta ;;
 	}
 }
 end
-
