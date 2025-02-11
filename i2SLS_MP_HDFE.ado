@@ -403,7 +403,7 @@ weight = st_local("aweight")
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (i==1) display("Max. Abs. Deviation:") ;;
-	if (mod(i,50)==0) 	criteria  ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 k = k + 1
 beta_contemporary = beta_new 
@@ -435,7 +435,7 @@ weight = st_local("aweight")
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (i==1) display("Max. Abs. Deviation:") ;;
-	if (mod(i,50)==0) 	criteria  ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
 end
@@ -475,7 +475,7 @@ weight = st_local("aweight")
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (i==1) display("Max. Abs. Deviation:") ;
-	if (mod(i,50)==0) 	criteria  ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 k = k + 1
 beta_contemporary = beta_new 
@@ -514,7 +514,7 @@ weight = st_local("aweight")
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (i==1) display("Max. Abs. Deviation: ") ;;
-	if (mod(i,50)==0) 	criteria  ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
 end
