@@ -21,7 +21,11 @@ syntax varlist [if] [in]  [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit
 foreach var of varlist `depvar' `_rhs' `endog' `instr'{
 quietly  replace `touse' = 0 if missing(`var')	
 }
-
+tempvar _group _mean _ones
+qui: egen `_group ' = group(`absorb')
+qui: gen `_ones' = `depvar' == 0
+qui: bys `_group' : egen `_mean' =  mean(`_ones')
+qui: replace `touse' = 0 if `_mean' == 1
 ********************************************************************************
 *********************// ESTIMATION WITHOUT FIXED EFFECTS //*********************
 ********************************************************************************
