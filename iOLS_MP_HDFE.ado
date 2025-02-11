@@ -333,7 +333,7 @@ k = 0
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (i==1) display("Max. Abs. Deviation:") ;;
-	if (mod(i,50)==0) 	criteria  ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 k = k + 1
 beta_contemporary = beta_new 
@@ -365,7 +365,7 @@ weight = st_local("aweight")
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (i==1) display("Max. Abs. Deviation:") ;;
-	if (mod(i,50)==0) 	criteria  ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
 end 
@@ -386,7 +386,7 @@ void function loop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_
 	stata("cap drop y_tild")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
 	stata("cap drop Y0_")
-    if (weight=="")  stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  acceleration(sd)   transform(sym)  ") ;;
+        if (weight=="")  stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  acceleration(sd)   transform(sym)  ") ;;
 	if (weight!="")  stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  acceleration(sd)   transform(sym)  ") ;;
 	st_view(Py_tilde,.,"Y0_",touse)
 	beta_new = invPXPX*cross(PX,Py_tilde)
@@ -398,8 +398,8 @@ void function loop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
-	if (i==1) display("Max. Abs. Deviation:") ;;
-	if (mod(i,50)==0) 	criteria  ;;
+	if (i==1) display("Max. Abs. Deviation :") ;;
+	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
 end
@@ -438,7 +438,7 @@ void function loop_function_D(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_ini
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (i==1) display("Max. Abs. Deviation:") ;;
-	if (mod(i,50)==0) 	criteria  ;;
+	if (mod(i,10)==0) 	criteria  ;;
 		}
 k = k + 1
 beta_contemporary = beta_new 
