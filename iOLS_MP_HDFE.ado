@@ -345,9 +345,9 @@ stop_crit = 0
 	if (mod(i,2)==0) 	criteria  ;;
 	}
 k = k + 1
+beta_contemporary = beta_new 
 if (k==1) display("Max. Abs. Deviation:") ;;
 (max(abs(beta_contemporary:-beta_history)))
-beta_contemporary = beta_new 
 stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
 if (stop_crit==0) delta = delta:*exp(k):*scale_delta ;;
 	}
