@@ -27,7 +27,7 @@ tempvar  _mean _ones
 qui: gen `_ones' = `depvar' == 0
 foreach var of varlist `absorb' {   // drop missing observations
 cap drop `_mean'
-qui: bys `var' : egen `_mean' =  mean(`_ones')
+qui: gegen `_mean' = mean(`_ones'), by(`var')
 qui: replace `touse' = 0 if `_mean' == 1
 }
 /*         ALGORITHM CHOICE       */	
