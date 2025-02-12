@@ -21,11 +21,13 @@ syntax varlist [if] [in]  [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit
 foreach var of varlist `depvar' `_rhs' `endog' `instr'{
 quietly  replace `touse' = 0 if missing(`var')	
 }
-tempvar _group _mean _ones
-qui: egen `_group ' = group(`absorb')
+tempvar  _mean _ones
 qui: gen `_ones' = `depvar' == 0
-qui: bys `_group' : egen `_mean' =  mean(`_ones')
+foreach var of varlist `absorb' {   // drop missing observations
+cap drop `_mean'
+qui: bys `var' : egen `_mean' =  mean(`_ones')
 qui: replace `touse' = 0 if `_mean' == 1
+}
 ********************************************************************************
 *********************// ESTIMATION WITHOUT FIXED EFFECTS //*********************
 ********************************************************************************
@@ -41,7 +43,10 @@ quietly: gen `w' = cond(`depvar', `K', 1)  if `touse'
 quietly: sum `w'
 if r(mean)!=0{
 while 1 {
-	quietly: reghdfe `u' `_rhs' [fw=`w']  if `touse' , resid noabsorb 
+	cap: quietly: reghdfe `u' `_rhs' [fw=`w']  if `touse' , resid noabsorb 
+if _rc!=0 {
+	cap: quietly: reghdfe `u' `_rhs' [fw=`w']  if `touse' , resid noabsorb 
+}
 	quietly: predict double `xb'  if `touse', xbd
 quietly:	replace `xb' = 0 if (abs(`xb') < `tol')&(`touse')
 quietly:	 cou if (`xb' < 0) & (`touse')
@@ -103,12 +108,12 @@ else {
 	mata: stop_crit = 0
 	mata : alpha = . 
 	mata: c_hat = . 
-	mata: scale_delta = max(y:*exp(-X*beta_initial))
+	mata: scale_delta = max(y:*exp(-X*beta_initial :-  ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))))
 	local k = 0
 	local eps = 1000	
 	mata : criteria = 10000
 /*         iOLS LOOP       */	
-	mata:  ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w)
+	mata:  ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w,stop_crit)
 	mata:  ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
 	mata: beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
@@ -181,7 +186,10 @@ quietly: gen `w' = cond(`depvar', `K', 1)  if `touse'
 quietly: sum `w'
 if r(mean)!=0{
 while 1 {
-quietly:	reghdfe `u' `_rhs'  `endog'  [fw=`w']  if `touse' , absorb(`absorb') resid(`e')
+cap: quietly:	reghdfe `u' `_rhs'  `endog'  [fw=`w']  if `touse' , absorb(`absorb') resid(`e')
+if _rc!=0 {
+cap: quietly:	reghdfe `u' `_rhs'  `endog'  [fw=`w']  if `touse' , absorb(`absorb') resid(`e')
+}
 quietly:	predict double `xb'  if `touse', xbd
 quietly:	replace `xb' = 0 if (abs(`xb') < `tol')&(`touse')
 quietly:	 cou if (`xb' < 0) & (`touse')
@@ -284,7 +292,7 @@ else {
 	mata: beta_contemporary = .
 	mata: c_hat = .
 	mata: stop_crit = 0
-	mata: scale_delta = max(y:*exp(-PX*beta_initial))
+	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial)))))
 	local almost_conv = 1e-3
 /*          LOOP      */	
 mata: ivloop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,beta_history, c_hat, beta_contemporary, stop_crit,scale_delta)
@@ -377,7 +385,7 @@ cap: mata: mata drop ivloop_function_D_fe()
 
 
 mata:
-void function ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w)
+void function ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w,scale_delta)
 {
 max = strtoreal(st_local("maximum"))
 lim = strtoreal(st_local("limit"))
@@ -385,9 +393,10 @@ show = (st_local("show"))
 weight = st_local("aweight")
  k = 0
  delta = 1
+stop_crit = 0
  while (stop_crit == 0) {
- 	beta_history = beta_new 
-	for (i=1; i<=max;i++) {
+ 	beta_history = beta_initial 
+	for (i=1; i<=max ; i++) {
 	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	xb_hat = X*beta_initial 
 	c_hat = mean(log(y :+ delta:*exp(xb_hat))) :- mean(xb_hat)
@@ -402,11 +411,11 @@ weight = st_local("aweight")
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
-	if (i==1) display("Max. Abs. Deviation:") ;;
-	if (mod(i,10)==0) 	criteria  ;;
 	}
 k = k + 1
 beta_contemporary = beta_new 
+if (k==1) display("Max. Abs. Deviation:") ;;
+(max(abs(beta_contemporary:-beta_history)))
 stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
 if (stop_crit==0) delta = exp(k):*scale_delta ;;
 	}
@@ -434,8 +443,6 @@ weight = st_local("aweight")
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
-	if (i==1) display("Max. Abs. Deviation:") ;;
-	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
 end
@@ -451,9 +458,10 @@ show = (st_local("show"))
 weight = st_local("aweight")
  k = 0
  delta = 1
+stop_crit = 0
  while (stop_crit == 0) {
- 	beta_history = beta_new 
-	for (i=1; i<=max;i++) {
+ 	beta_history = beta_nitial 
+	for (i=1; i<=max ; i++) {
 	xb_hat_M = PX*beta_initial 
 	diff = y_tilde - Py_tilde
 	alpha = log(mean(y:*exp(-xb_hat_M)))
@@ -463,7 +471,7 @@ weight = st_local("aweight")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde - diff)
 	stata("cap drop Y0_")
 	if (weight=="") stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  ;;
-    if (weight!="") stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  ;;
+        if (weight!="") stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  ;;
 	st_view(Py_tilde,.,"Y0_",touse)
 	beta_new = invPzX*cross(PZ,Py_tilde)
 	past_criteria = criteria
@@ -474,11 +482,11 @@ weight = st_local("aweight")
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
-	if (i==1) display("Max. Abs. Deviation:") ;
-	if (mod(i,10)==0) 	criteria  ;;
 	}
 k = k + 1
 beta_contemporary = beta_new 
+if (k==1) display("Max. Abs. Deviation:") ;
+(max(abs(beta_contemporary:-beta_history)))
 stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
 if (stop_crit==0) delta = exp(k):*scale_delta ;;
 	}
@@ -493,7 +501,7 @@ max = strtoreal(st_local("maximum"))
 lim = strtoreal(st_local("limit"))
 show = (st_local("show"))
 weight = st_local("aweight")
-	for (i=1; i<=max;i++) {
+	for (i=1; i<=max ; i++) {
 	alpha = log(mean(y:*exp(-xb_hat_M)))
 	xb_hat_M = PX*beta_initial 
 	diff = y_tilde - Py_tilde
@@ -513,8 +521,6 @@ weight = st_local("aweight")
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
-	if (i==1) display("Max. Abs. Deviation: ") ;;
-	if (mod(i,10)==0) 	criteria  ;;
 	}
 }
 end
