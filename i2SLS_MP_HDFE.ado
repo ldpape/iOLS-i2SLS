@@ -468,7 +468,7 @@ weight = st_local("aweight")
  delta = 1
 stop_crit = 0
  while (stop_crit == 0) {
- 	beta_history = beta_nitial 
+ 	beta_history = beta_initial 
 	for (i=1; i<=max ; i++) {
 	xb_hat_M = PX*beta_initial 
 	diff = y_tilde - Py_tilde
