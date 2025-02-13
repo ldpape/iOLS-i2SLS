@@ -28,6 +28,14 @@ cap drop `_mean'
 qui: gegen `_mean' = mean(`_ones'), by(`var')
 qui: replace `touse' = 0 if `_mean' == 1
 }
+foreach var of varlist `_rhs'{
+	qui: gdistinct `var'
+	if (r(ndistinct)<3) {
+cap drop `_mean'
+qui: gegen `_mean' = mean(`_ones'), by(`var')
+qui: replace `touse' = 0 if `_mean' == 1	
+	}
+}
 ********************************************************************************
 *********************// ESTIMATION WITHOUT FIXED EFFECTS //*********************
 ********************************************************************************
