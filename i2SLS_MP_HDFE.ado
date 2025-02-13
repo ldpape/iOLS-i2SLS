@@ -393,7 +393,7 @@ cap: mata: mata drop ivloop_function_D_fe()
 
 
 mata:
-void function ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w,scale_delta)
+void function ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w)
 {
 max = strtoreal(st_local("maximum"))
 lim = strtoreal(st_local("limit"))
