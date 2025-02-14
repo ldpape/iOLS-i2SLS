@@ -25,10 +25,12 @@ quietly replace `touse' = 0 if missing(`var')
 }
 tempvar  _mean _ones
 qui: gen `_ones' = `depvar' == 0
+    if "`absorb'" !="" {
 foreach var of varlist `absorb' {   // drop missing observations
 cap drop `_mean'
 qui: gegen `_mean' = mean(`_ones'), by(`var')
 qui: replace `touse' = 0 if `_mean' == 1
+}
 }
 foreach var of varlist `_rhs'{
 	qui: gdistinct `var'
