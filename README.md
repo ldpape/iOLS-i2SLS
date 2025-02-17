@@ -18,6 +18,8 @@ This repository includes code for iOLS_MP_HDFE and i2SLS_MP_HDFE as described in
 
 >ssc install ranktest
 
+>ssc install gtools
+
 To install this code into Stata, run the following (requires at least Stata 14) : 
 
 >cap ado uninstall iOLS_i2SLS
