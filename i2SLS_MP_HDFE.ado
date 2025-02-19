@@ -478,8 +478,8 @@ stop_crit = 0
 	stata("cap drop y_tild")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde - diff)
 	stata("cap drop Y0_")
-	if (weight=="") stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)   acceleration(sd)   transform(sym)")  tolerance(\`almost_conv') ;;
-        if (weight!="") stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)   acceleration(sd)   transform(sym)") tolerance(\`almost_conv')  ;;
+	if (weight=="") stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)   acceleration(sd)   transform(sym)  tolerance(\`almost_conv') ")  ;;
+        if (weight!="") stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)   acceleration(sd)   transform(sym)  tolerance(\`almost_conv') ")  ;;
 	st_view(Py_tilde,.,"Y0_",touse)
 	beta_new = invPzX*cross(PZ,Py_tilde)
 	past_criteria = criteria
