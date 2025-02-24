@@ -428,7 +428,7 @@ k = k + 1
 beta_contemporary = beta_new 
 if (k==1) display("------------- Maximum Absolute Deviations -------------") ;;
 (max(abs(beta_contemporary:-beta_history)))
-stop_crit = (max(abs(beta_contemporary:-beta_history)))<1e-3
+stop_crit = (max(abs(beta_contemporary:-beta_history)))<1e-4
 if (stop_crit==0) delta = exp(k):*scale_delta ;;
 	}
 }
@@ -538,7 +538,7 @@ k = k + 1
 beta_contemporary = beta_new 
 if (k==1) display("------------- Maximum Absolute Deviations -------------") ;;
 (max(abs(beta_contemporary:-beta_history)))
-stop_crit = (max(abs(beta_contemporary:-beta_history)))<1e-3
+stop_crit = (max(abs(beta_contemporary:-beta_history)))<1e-4
 if (stop_crit==0) delta = exp(k):*scale_delta ;;
 	}
 }
