@@ -3,7 +3,7 @@ mata: mata set matafavor speed
 mata: mata set matastrict off
 cap program drop i2SLS_MP_HDFE
 program define i2SLS_MP_HDFE, eclass
-syntax varlist [if] [in]  [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-4) from(name) nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string) aweight(varlist)  ]              
+syntax varlist [if] [in]  [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-7) from(name) nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string) aweight(varlist)  ]              
 /*         PARSE TEXT       */
 	cap drop _reg*
 	marksample touse
@@ -428,7 +428,7 @@ k = k + 1
 beta_contemporary = beta_new 
 if (k==1) display("------------- Maximum Absolute Deviations -------------") ;;
 (max(abs(beta_contemporary:-beta_history)))
-stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
+stop_crit = (max(abs(beta_contemporary:-beta_history)))<1e-3
 if (stop_crit==0) delta = exp(k):*scale_delta ;;
 	}
 }
@@ -538,7 +538,7 @@ k = k + 1
 beta_contemporary = beta_new 
 if (k==1) display("------------- Maximum Absolute Deviations -------------") ;;
 (max(abs(beta_contemporary:-beta_history)))
-stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
+stop_crit = (max(abs(beta_contemporary:-beta_history)))<1e-3
 if (stop_crit==0) delta = exp(k):*scale_delta ;;
 	}
 }
