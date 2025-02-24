@@ -335,7 +335,8 @@ k = 0
 delta = 1
 stop_crit = 0
  while (stop_crit == 0) {
- 	beta_history = beta_initial 
+ 	beta_history = beta_initial
+	criteria = 1000
 	for (i=1; i<=max;i++) {
 	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	xb_hat_M = X*beta_initial
@@ -436,7 +437,8 @@ void function loop_function_D(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_ini
  delta = 1
  stop_crit = 0
  while (stop_crit == 0) {
- 	beta_history = beta_initial 
+ 	beta_history = beta_initial
+	criteria = 1000
 	for (i=1; i<=max ; i++) {
 	xb_hat_M = PX*beta_initial
 	alpha = log(mean(y:*exp(-xb_hat_M)))
