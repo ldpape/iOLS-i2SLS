@@ -453,7 +453,7 @@ void function loop_function_D(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_ini
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
 	if (past_criteria<criteria) display("Convergence issue : increasing convergence precision.")
-   	if (past_criteria<criteria) st_local("almost_conv", strofreal(conv*0.1)) ;; // avoid problems due to lax convergence
+   	if (past_criteria<criteria) st_local("almost_conv", strofreal(max(1e-6,conv*0.1))) ;; // avoid problems due to lax convergence
 //   	if (past_criteria<criteria) criteria = past_criteria ;;
 //   	if (past_criteria>criteria) beta_initial = beta_new ;;
 	beta_initial = beta_new
