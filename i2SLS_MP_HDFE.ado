@@ -303,7 +303,7 @@ else {
 	mata: c_hat = .
 	mata: stop_crit = 0
 	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial)))))
-	local almost_conv = 1e-3
+	local almost_conv = 1e-1
 /*          LOOP      */	
 mata: ivloop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,beta_history, c_hat, beta_contemporary, stop_crit,scale_delta)
 mata: ivloop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
@@ -412,19 +412,20 @@ stop_crit = 0
 	c_hat = mean(log(y :+ delta:*exp(xb_hat))) :- mean(xb_hat)
 	y_tilde = log(y :+ delta:*exp(xb_hat)) :- c_hat
 	if (weight=="")  beta_new = invPzX*cross(Z,y_tilde) ;;
-	if (weight!="") 	beta_new = invPzX*cross(Z, w , y_tilde)  ;; 
+	if (weight!="")  beta_new = invPzX*cross(Z, w , y_tilde)  ;; 
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) delta = delta*1.1 ;;
-	if (past_criteria<criteria) criteria = past_criteria ;;
-	if (past_criteria>criteria) beta_initial = beta_new ;;
+	beta_initial = beta_new
+ 	if (criteria < 1e-2) i=max+1 ;; // puts an end to the loop 
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
- 	if (criteria < lim) i=max+1;; // puts an end to the loop 
+	if ((i == 1) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) iOLS_delta Step Number") ;; 
 	if (show != "") criteria;;
+	if (show != "") delta;;
+	if (show != "") k;;
 	}
 k = k + 1
 beta_contemporary = beta_new 
-if (k==1) display("Max. Abs. Deviation:") ;;
+if (k==1) display("------------- Maximum Absolute Deviations -------------") ;;
 (max(abs(beta_contemporary:-beta_history)))
 stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
 if (stop_crit==0) delta = exp(k):*scale_delta ;;
@@ -444,12 +445,13 @@ weight = st_local("aweight")
 	xb_hat = X*beta_initial
 	y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat  
 	if (weight=="")  beta_new = invPzX*cross(Z,y_tilde) ;;
- 	if (weight!="") 	beta_new = invPzX*cross(Z, w , y_tilde)  ;; 
-	 past_criteria = criteria
+ 	if (weight!="")  beta_new = invPzX*cross(Z, w , y_tilde)  ;; 
+	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
 	if (past_criteria<criteria) delta = delta*1.1 ;;
 	if (past_criteria<criteria) criteria = past_criteria ;;
 	if (past_criteria>criteria) beta_initial = beta_new ;;
+ 	if (i == 1) display("------------- Final Estimation Step -------------") ;; 	
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (show != "") criteria;;
@@ -459,6 +461,39 @@ end
 
 
 
+
+mata:
+void function ivloop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
+{
+max = strtoreal(st_local("maximum"))
+lim = strtoreal(st_local("limit"))
+show = (st_local("show"))
+weight = st_local("aweight")
+	for (i=1; i<=max ; i++) {
+	xb_hat_M = PX*beta_initial 
+	alpha = log(mean(y:*exp(-xb_hat_M)))
+	diff = y_tilde - Py_tilde
+    y_tilde = ((y:*exp(-xb_hat_M :- alpha)  :- 1):/(1:+delta)) + xb_hat_M :+ alpha 
+	stata("cap drop y_tild")
+	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
+	stata("cap drop Y0_")
+    if (weight=="") stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)    acceleration(sd)   transform(sym)")  ;;
+    if (weight!="") stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)   acceleration(sd)   transform(sym)")  ;;
+	st_view(Py_tilde,.,"Y0_",touse)
+	beta_new = invPzX*cross(PZ,Py_tilde)
+	past_criteria = criteria
+	criteria = max(abs(beta_new:-beta_initial))
+	if (past_criteria<criteria) delta = delta*1.1 ;;
+	if (past_criteria<criteria) criteria = past_criteria ;;
+	if (past_criteria>criteria) beta_initial = beta_new ;;
+ 	if (i == 1) display("------------- Final Estimation Step -------------") ;; 
+	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
+ 	if (criteria < lim) i=max+1;; // puts an end to the loop 
+	if (show != "") criteria;;
+	}
+}
+end
+
 mata:
 void function ivloop_function_D(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,beta_history, c_hat, beta_contemporary, stop_crit,scale_delta)
 {
@@ -466,8 +501,9 @@ max = strtoreal(st_local("maximum"))
 lim = strtoreal(st_local("limit"))
 show = (st_local("show"))
 weight = st_local("aweight")
- k = 0
- delta = 1
+conv = strtoreal(st_local("almost_conv"))
+k = 0
+delta = 1
 stop_crit = 0
  while (stop_crit == 0) {
  	beta_history = beta_initial 
@@ -486,51 +522,58 @@ stop_crit = 0
 	beta_new = invPzX*cross(PZ,Py_tilde)
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) delta = delta*1.1 ;;
-	if (past_criteria<criteria) criteria = past_criteria ;;
-	if (past_criteria>criteria) beta_initial = beta_new ;;
+	if (past_criteria<criteria) display("Convergence issue : increasing convergence precision.")
+   	if (past_criteria<criteria) st_local("almost_conv", strofreal(conv*0.1)) ;; // avoid problems due to lax convergence
+	beta_initial = beta_new
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
- 	if (criteria < lim) i=max+1;; // puts an end to the loop 
+	if ((i == max) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) iOLS_delta Step Number") ;; 
+ 	if (criteria < 1e-2) i=max+1 ;; // puts an end to the loop 
 	if (show != "") criteria;;
+	if (show != "") delta;;
+	if (show != "") k;;
 	}
 k = k + 1
 beta_contemporary = beta_new 
-if (k==1) display("Max. Abs. Deviation:") ;
+if (k==1) display("------------- Maximum Absolute Deviations -------------") ;;
 (max(abs(beta_contemporary:-beta_history)))
 stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
 if (stop_crit==0) delta = exp(k):*scale_delta ;;
 	}
 }
 end
+/*
+** - Example
+* Set the number of individuals (N) and time periods (T)
+local N = 200000
+local T = 2
+set seed 1234
+* Create a dataset with all combinations of individuals and time periods
+clear 
+set obs `N'
+gen id = _n
+expand `T'
+bysort id: gen time = _n
 
+* Generate individual-specific effects (alpha)
+gen alpha = rnormal(-0.5, 0.5)
 
-mata:
-void function ivloop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
-{
-max = strtoreal(st_local("maximum"))
-lim = strtoreal(st_local("limit"))
-show = (st_local("show"))
-weight = st_local("aweight")
-	for (i=1; i<=max ; i++) {
-	alpha = log(mean(y:*exp(-xb_hat_M)))
-	xb_hat_M = PX*beta_initial 
-	diff = y_tilde - Py_tilde
-    y_tilde = ((y:*exp(-xb_hat_M :- alpha)  :- 1):/(1:+delta)) + xb_hat_M :+ alpha 
-	stata("cap drop y_tild")
-	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
-	stata("cap drop Y0_")
-    if (weight=="") stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  ;;
-    if (weight!="") stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv')  acceleration(sd)   transform(sym)")  ;;
-	st_view(Py_tilde,.,"Y0_",touse)
-	beta_new = invPzX*cross(PZ,Py_tilde)
-	past_criteria = criteria
-	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) delta = delta*1.1 ;;
-	if (past_criteria<criteria) criteria = past_criteria ;;
-	if (past_criteria>criteria) beta_initial = beta_new ;;
-	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
- 	if (criteria < lim) i=max+1;; // puts an end to the loop 
-	if (show != "") criteria;;
-	}
-}
-end
+* Generate time-specific effects (gamma)
+gen gamma = rnormal(-0.5, 0.5)
+
+* Create a time variable with common shocks across individuals
+egen gamma_t = mean(gamma), by(time)
+egen alpha_i = mean(alpha), by(id)
+
+* Generate independent variables (X1, X2)
+gen X1 =  runiform(0, 1) + alpha_i - gamma_t
+gen X2 =  rnormal(0, 1) + X1 - alpha_i + gamma_t
+gen Z  =  rnormal(0,1) -3*gamma_t + alpha_i
+gen D  =  rnormal(0, 1) - alpha_i + gamma_t - Z
+* Generate idiosyncratic errors (epsilon)
+gen epsilon = runiform(0, 2)
+gen Y = exp(2*X1 + 2*X2 + 2*D - gamma_t )*epsilon
+gen wvar = (uniform())*1000 // random weights 
+* Create a dependent variable (Y) based on a linear model
+xi: i2SLS_MP_HDFE Y X1  i.gamma_t ,  endog(D) instr(Z) show
+i2SLS_MP_HDFE Y X1  , absorb(gamma_t )  endog(D) instr(Z)  show
+*/
