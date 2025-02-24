@@ -405,7 +405,8 @@ weight = st_local("aweight")
  delta = 1
 stop_crit = 0
  while (stop_crit == 0) {
- 	beta_history = beta_initial 
+ 	beta_history = beta_initial
+	criteria = 1000
 	for (i=1; i<=max ; i++) {
 	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	xb_hat = X*beta_initial 
@@ -506,7 +507,8 @@ k = 0
 delta = 1
 stop_crit = 0
  while (stop_crit == 0) {
- 	beta_history = beta_initial 
+ 	beta_history = beta_initial
+	criteria = 1000
 	for (i=1; i<=max ; i++) {
 	xb_hat_M = PX*beta_initial 
 	diff = y_tilde - Py_tilde
