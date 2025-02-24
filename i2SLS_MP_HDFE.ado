@@ -523,7 +523,7 @@ stop_crit = 0
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
 	if (past_criteria<criteria) display("Convergence issue : increasing convergence precision.")
-   	if (past_criteria<criteria) st_local("almost_conv", strofreal(conv*0.1)) ;; // avoid problems due to lax convergence
+   	if (past_criteria<criteria) st_local("almost_conv", strofreal(max(1e-6,conv*0.1))) ;; // avoid problems due to lax convergence
 	beta_initial = beta_new
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
 	if ((i == max) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) iOLS_delta Step Number") ;; 
