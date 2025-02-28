@@ -354,7 +354,7 @@ weight = st_local("aweight")
  	if (i == 1) display("------------- Final Estimation Step -------------") ;; 	
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
-	if (show != "") criteria;;
+	if (mod(i,10)==0) criteria ;;
 	}
 }
 end 
