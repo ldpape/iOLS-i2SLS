@@ -348,7 +348,7 @@ weight = st_local("aweight")
 	if (weight!="")  	beta_new = invXX*cross(X,w,y_tilde) ;;
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) delta = delta*1.1 ;;
+	if (past_criteria<criteria) delta = delta*1.05 ;;
 	if (past_criteria<criteria) criteria = past_criteria ;;
 	if (past_criteria>criteria) beta_initial = beta_new ;;
  	if (i == 1) display("------------- Final Estimation Step -------------") ;; 	
