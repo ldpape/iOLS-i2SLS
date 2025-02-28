@@ -1,4 +1,4 @@
-# iOLS-i2SLS : This repository includes all available STATA programs of iterated Ordinary Least Squares and iterated Two Stage Least Squares
+# BETA MODE - DO NOT USE
 
 This repository includes code for iOLS_MP_HDFE and i2SLS_MP_HDFE as described in Bellégo, Benatia and Pape (2021).
 
