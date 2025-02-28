@@ -310,7 +310,7 @@ local df_r = e(df_r) - `df_a'
 cap drop iOLS_MP_HDFE_error
 cap drop _reghdfe*
 cap drop y_tild
-mata: ui = y:*exp(-xb_hat_M :+ log(mean_y) :- log(mean( y:*exp(-xb_hat_M  ))))
+mata: ui = y:*exp(-xb_hat_M :- log(mean_y) :- log(mean( y:*exp(-xb_hat_M  ))))
 mata: st_store(., st_addvar("double", "iOLS_MP_HDFE_error"), "_COPY", ui)
 ereturn scalar delta = `delta'
 ereturn scalar eps =   `eps'
@@ -345,7 +345,7 @@ weight = st_local("aweight")
 	xb_hat = X*beta_initial 
 	y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat
 	if (weight=="")  beta_new = invXX*cross(X,y_tilde) ;;
-	if (weight!="")  	beta_new = invXX*cross(X,w,y_tilde) ;;
+	if (weight!="")  beta_new = invXX*cross(X,w,y_tilde) ;;
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
 	if (past_criteria<criteria) delta = delta*1.05 ;;
