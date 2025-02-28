@@ -22,8 +22,6 @@ syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1) LIMi
 gettoken _rhs list_var : list_var, p("(")
 tempvar depvar 
 gen `depvar' = `dvar'
-qui: sum `depvar' if `touse' & `depvar'>0
-mata: mean_y = `r(mean)'
 qui:replace `depvar' = `depvar'/r(mean)
 foreach var of varlist `depvar' `_rhs' {   // drop missing observations
 quietly replace `touse' = 0 if missing(`var')
@@ -46,7 +44,7 @@ qui: replace `touse' = 0 if `_mean' == 1
 	}
 }
 qui: sum `depvar' if `touse' & `depvar'>0
-qui:replace `depvar' = `depvar'/r(mean)
+mata: mean_y = `r(mean)'
 /*         ALGORITHM CHOICE       */	
 // first present code for case with no fixed effects
 // speed gains from the absence of HDFE calls
