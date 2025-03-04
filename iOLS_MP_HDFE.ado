@@ -22,7 +22,6 @@ syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1) LIMi
 gettoken _rhs list_var : list_var, p("(")
 tempvar depvar 
 gen `depvar' = `dvar'
-qui:replace `depvar' = `depvar'/r(mean)
 foreach var of varlist `depvar' `_rhs' {   // drop missing observations
 quietly replace `touse' = 0 if missing(`var')
 }
