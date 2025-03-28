@@ -3,7 +3,7 @@ mata: mata set matafavor speed
 mata: mata set matastrict off
 cap program drop i2SLS_MP_HDFE
 program define i2SLS_MP_HDFE, eclass
-syntax varlist [if] [in]  [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-4) from(name) nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string) aweight(varlist)  ]              
+syntax varlist [if] [in]  [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-4) NOWARM from(name) nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string) aweight(varlist)  ]              
 /*         PARSE TEXT       */
 	cap drop _reg*
 	marksample touse
@@ -128,7 +128,9 @@ else {
 	local eps = 1000	
 	mata : criteria = 10000
 /*         iOLS LOOP       */	
+if "`nowarm'" == "" {
 	mata:  ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w)
+}
 	mata:  ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
 	mata: beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
@@ -310,9 +312,11 @@ else {
 	mata: c_hat = .
 	mata: stop_crit = 0
 	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial)))))
-	local almost_conv = 1e-5
+	local almost_conv = 1e-4
 /*          LOOP      */	
+if "`nowarm'" == "" {
 mata: ivloop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,beta_history, c_hat, beta_contemporary, stop_crit,scale_delta)
+}
 mata: ivloop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
 	mata: alpha = log(mean(y:*exp(-xb_hat_M)))
@@ -577,13 +581,12 @@ egen alpha_i = mean(alpha), by(id)
 * Generate independent variables (X1, X2)
 gen X1 =  runiform(0, 1) + alpha_i - gamma_t
 gen X2 =  rnormal(0, 1) + X1 - alpha_i + gamma_t
-gen Z  =  rnormal(0,1) -3*gamma_t + alpha_i
-gen D  =  rnormal(0, 1) - alpha_i + gamma_t - Z
+gen Z  =  rnormal(0,1) -gamma_t + alpha_i
+gen D  =  rnormal(0, 1) - alpha_i + gamma_t - 3*Z
 * Generate idiosyncratic errors (epsilon)
 gen epsilon = runiform(0, 2)
 gen Y = exp(2*X1 + 2*X2 + 2*D - gamma_t )*epsilon
 gen wvar = (uniform())*1000 // random weights 
 * Create a dependent variable (Y) based on a linear model
-xi: i2SLS_MP_HDFE Y X1  i.gamma_t ,  endog(D) instr(Z) show
-i2SLS_MP_HDFE Y X1  , absorb(gamma_t )  endog(D) instr(Z)  show
-*/
+xi: i2SLS_MP_HDFE Y X1  i.gamma_t ,  endog(D) instr(Z) nowarm show
+i2SLS_MP_HDFE Y X1  , absorb(gamma_t )  endog(D) instr(Z)  show nowarm
