@@ -3,7 +3,7 @@ mata: mata set matafavor speed
 mata: mata set matastrict off
 cap program drop iOLS_MP_HDFE
 program define iOLS_MP_HDFE, eclass 
-syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1) LIMit(real 1e-4) OFFset(string) from(name) checkzero(real 1) aweight(varlist) MAXimum(real 10000) ABSorb(string) SHOW  FIXED Robust CLuster(string)]        
+syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1) LIMit(real 1e-4) NOWARM OFFset(string) from(name) checkzero(real 1) aweight(varlist) MAXimum(real 10000) ABSorb(string) SHOW  FIXED Robust CLuster(string)]        
 /*         PARSE TEXT       */
 	marksample touse
 	markout `touse'  `cluster', s     
@@ -120,7 +120,9 @@ else {
 	mata: scale_delta = max(y:*exp(-X*beta_initial :-  ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))))
 	mata: stop_crit = 0
 /*         iOLS LOOP       */	
-mata: loop_function_D_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,scale_delta,stop_crit)
+if "`nowarm'" == ""{
+mata: loop_function_D_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,scale_delta,stop_crit)	
+}
 mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
 /*         COVARIANCE MATRIX CALCULATION       */	
 	mata: alpha = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
@@ -266,7 +268,9 @@ else {
 	mata: diff = .
 	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial)))))
 /*          LOOP      */	
+if "`nowarm'" == ""{
 	mata: loop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria,scale_delta)
+}
 	mata: loop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
  	mata: ui = y:*exp(-xb_hat_M :- log(mean( y:*exp(-xb_hat_M  ))))
@@ -480,3 +484,40 @@ if (stop_crit==0) delta = exp(k):*delta ;;
 	}
 }
 end
+/*
+
+** - Example
+* Set the number of individuals (N) and time periods (T)
+local N = 200000
+local T = 2
+set seed 1234
+* Create a dataset with all combinations of individuals and time periods
+clear 
+set obs `N'
+gen id = _n
+expand `T'
+bysort id: gen time = _n
+
+* Generate individual-specific effects (alpha)
+gen alpha = rnormal(-0.5, 0.5)
+
+* Generate time-specific effects (gamma)
+gen gamma = rnormal(-0.5, 0.5)
+
+* Create a time variable with common shocks across individuals
+egen gamma_t = mean(gamma), by(time)
+egen alpha_i = mean(alpha), by(id)
+
+* Generate independent variables (X1, X2)
+gen X1 =  runiform(0, 1) + alpha_i - gamma_t
+gen X2 =  rnormal(0, 1) + X1 - alpha_i + gamma_t
+gen Z  =  rnormal(0,1) -gamma_t + alpha_i
+gen D  =  rnormal(0, 1) - alpha_i + gamma_t - 3*Z
+* Generate idiosyncratic errors (epsilon)
+gen epsilon = runiform(0, 2)
+gen Y = exp(2*X1 + 2*X2 + 2*D - gamma_t )*epsilon
+gen wvar = (uniform())*1000 // random weights 
+* Create a dependent variable (Y) based on a linear model
+xi: iOLS_MP_HDFE Y X1 X2 D  i.gamma_t ,   nowarm 
+iOLS_MP_HDFE Y X1 X2 D , absorb(gamma_t )    nowarm
+*/
