@@ -21,7 +21,7 @@ syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1) LIMi
 	gettoken dvar list_var : list_var // change 
 gettoken _rhs list_var : list_var, p("(")
 tempvar depvar 
-gen `depvar' = `dvar'
+qui: gen `depvar' = `dvar'
 foreach var of varlist `depvar' `_rhs' {   // drop missing observations
 quietly replace `touse' = 0 if missing(`var')
 }
@@ -351,6 +351,7 @@ weight = st_local("aweight")
 	if (weight!="")  beta_new = invXX*cross(X,w,y_tilde) ;;
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
+	if (past_criteria<criteria) display("Convergence Issue: consider using the warm startup.") ;; 
 	if (past_criteria<criteria) delta = delta*1.05 ;;
 	if (past_criteria<criteria) criteria = past_criteria ;;
 	if (past_criteria>criteria) beta_initial = beta_new ;;
@@ -429,6 +430,7 @@ void function loop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
  	if (past_criteria<criteria) delta = delta*1.05 ;;
+	if (past_criteria<criteria) display("Convergence Issue: consider using the warm startup.") ;; 
  	if (past_criteria<criteria) criteria = past_criteria ;;
  	if (past_criteria>criteria) beta_initial = beta_new ;;
  	if (i == 1) display("------------- Final Estimation Step -------------") ;; 
