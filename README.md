@@ -1,32 +1,49 @@
-# BETA MODE - DO NOT USE
+# Iterated Ordinary Least Squares (iOLS) and Two Stage Least Squares (i2SLS) with High Dimensional Fixed Effects
 
-This repository includes code for iOLS_MP_HDFE and i2SLS_MP_HDFE as described in Bellégo, Benatia and Pape (2021).
+This repository includes code for iOLS_MP_HDFE and i2SLS_MP_HDFE as described in Bellégo, Benatia and Pape (2021) : https://arxiv.org/abs/2203.11820
 
->ssc install hdfe
+## Installation 
+Before using this package, you must install the following:
 
->ssc install reghdfe  // If an error appears, try downloading the more recent version from http://scorreia.com/software/reghdfe/install.html
+          ssc install hdfe
+          ssc install reghdfe
+          ssc install moremata
+          ssc install ivreg2
+          ssc install ftools
+          ssc install ppml
+          ssc install ppmlhdfe 
+          ssc install ranktest
+          ssc install gtools
 
->ssc install moremata
+To install the beta version into Stata, run the following (requires at least Stata 14) : 
 
->ssc install ivreg2
+          cap ado uninstall iOLS_i2SLS
+          net install iOLS_i2SLS, from("https://raw.githubusercontent.com/ldpape/iOLS-i2SLS/main/")
+          
+## Examples 
+This package is compatible with the estout package.
 
->ssc install ftools
 
->ssc install ppml
+### iOLS_MP_HDFE : Exogenous covariates
+Without fixed effects, the package estimates a pseudo-GML model. 
 
->ssc install ppmlhdfe 
+        sysuse auto.dta, replace
+        eststo: xi: iOLS_MP_HDFE price mpg i.foreign, robust
 
->ssc install ranktest
+With fixed effects, the estimates do not suffer from the incidental parameter problem. 
 
->ssc install gtools
+        eststo: iOLS_MP_HDFE price mpg, absorb(foreign) robust
+        esttab 
 
-To install this code into Stata, run the following (requires at least Stata 14) : 
+It is normal that both modes will not yield the same point estimates.
 
->cap ado uninstall iOLS_i2SLS
+### i2SLS_MP_HDFE : Endogenous covariates
+The syntax is different for i2SLS_MP_HDFE, as shown in the following example:
 
->net install iOLS_i2SLS, from("https://raw.githubusercontent.com/ldpape/iOLS-i2SLS/main/")
+        use "http://fmwww.bc.edu/RePEc/bocode/i/ivp_bwt.dta", replace
+        eststo: i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)
+        eststo: i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) robust
+        esttab 
 
-Please feel free to contact me to report a bug or ask a question. 
 
-Note, this code is provided as is and may include potential errors.  It has been tested for Stata version 16 but has also worked on Stata 14. 
 
