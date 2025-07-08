@@ -45,5 +45,15 @@ The syntax is different for i2SLS_MP_HDFE, as shown in the following example:
         eststo: i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) robust
         esttab 
 
+## Citation : 
+Please cite the following article : https://arxiv.org/abs/2203.11820
 
-
+@misc{bbp2022,
+      title={Dealing with Logs and Zeros in Regression Models}, 
+      author={Christophe Bellégo and David Benatia and Louis Pape},
+      year={2022},
+      eprint={2203.11820},
+      archivePrefix={arXiv},
+      primaryClass={econ.EM},
+      url={https://arxiv.org/abs/2203.11820}, 
+}
