@@ -52,6 +52,7 @@ It addresses the problem of the log of zero by iteratively running the {cmd:regh
 {synopt:{opt vce}{cmd:(}{help iOLS_MP_HDFE##opt_vce:vcetype}{cmd:)}} Specify variance-covariance estimator: {opt robust}, {opt cluster} for clustering {p_end}
 {synopt:{opt limit}{cmd:(}{help iOLS_MP_HDFE##limit:limit}{cmd:)}} Convergence criteria (default: 1e-3) {p_end}
 {synopt:{opt maximum}{cmd:(}{help iOLS_MP_HDFE##maximum:maximum}{cmd:)}} Maximum iterations (default: 10,000) {p_end}
+{synopt:{opt warm}{cmd:(}{help iOLS_MP_HDFE##warm:warm}{cmd:)}} Warm startup using iOLS_delta{p_end}
 
 {marker postestimation}{...}
 {title:Post-Estimation}
