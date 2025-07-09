@@ -52,6 +52,7 @@ It addresses the problem of the log of zero by iteratively running the {cmd:regh
 {synopt:{opt endog(varlist)}} Specifies endogenous variables{p_end}
 {synopt:{opt instr(varlist)}} Specifies instruments{p_end}
 {synopt:{opt absorb(varlist)}} Categorical variables treated as fixed effects{p_end}
+{synopt:{opt warm }} Warm startup using iOLS_delta{p_end}
 {synopt:{opt vce(vcetype)}} Specifies the variance-covariance estimator: robust or clustered{p_end}
 {synopt:{opt limit(#)}} Convergence criterion based on mean squared difference (defaults to 1e-3){p_end}
 {synopt:{opt maximum(#)}} Maximum number of iterations (defaults to 10,000){p_end}
@@ -109,3 +110,4 @@ month={Sep}}
 {synopt:{cmd:e(N)}} Number of observations{p_end}
 {synopt:{cmd:e(sample)}} Marks the sample used for estimation{p_end}
 {synopt:{cmd:e(df_r)}} Degrees of freedom{p_end}
+
