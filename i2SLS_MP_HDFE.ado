@@ -3,7 +3,7 @@ mata: mata set matafavor speed
 mata: mata set matastrict off
 cap program drop i2SLS_MP_HDFE
 program define i2SLS_MP_HDFE, eclass
-syntax varlist [if] [in]  [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-4) NOWARM from(name) nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string) aweight(varlist)  ]              
+syntax varlist [if] [in]  [, DELta(real 1)  ABSorb(varlist) OFFset(string) LIMit(real 1e-4) WARM from(name) nocheck(real 1) MAXimum(real 10000) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string) aweight(varlist)  ]              
 /*         PARSE TEXT       */
 	cap drop _reg*
 	marksample touse
@@ -128,9 +128,10 @@ else {
 	local eps = 1000	
 	mata : criteria = 10000
 /*         iOLS LOOP       */	
-if "`nowarm'" == "" {
+if "`warm'" != "" {
 	mata:  ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w)
 }
+	mata: delta = 2.5
 	mata:  ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
 	mata: beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
@@ -314,9 +315,10 @@ else {
 	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial)))))
 	local almost_conv = 1e-4
 /*          LOOP      */	
-if "`nowarm'" == "" {
+if "`warm'" != "" {
 mata: ivloop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,beta_history, c_hat, beta_contemporary, stop_crit,scale_delta)
 }
+mata: delta = 2.5
 mata: ivloop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
 /*         VARIANCE COVARIANCE CALCULATIONS      */	
 	mata: alpha = log(mean(y:*exp(-xb_hat_M)))
