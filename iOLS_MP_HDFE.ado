@@ -398,7 +398,7 @@ stop_crit = 0
 	}
 k = k + 1
 beta_contemporary = beta_new 
-if (k==1) display("------------- Maximum Absolute Deviations -------------") ;;
+if (k==1) display("------------- Warm Statup (iOLS_delta) -------------") ;;
 (max(abs(beta_contemporary:-beta_history)))
 stop_crit = (max(abs(beta_contemporary:-beta_history)))<1e-4
 if (stop_crit==0) delta = exp(k):*scale_delta;;
@@ -481,7 +481,7 @@ void function loop_function_D(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_ini
 		}
 k = k + 1
 beta_contemporary = beta_new 
-if (k==1) display("------------- Maximum Absolute Deviations -------------") ;;
+if (k==1) display("------------- Warm Statup (iOLS_delta) -------------") ;;
 (max(abs(beta_contemporary:-beta_history)))
 stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
 if (stop_crit==0) delta = exp(k):*delta ;;
