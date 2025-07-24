@@ -326,7 +326,7 @@ else {
 	mata: c_hat = .
 	mata: delta = 1 
 	mata: stop_crit = 0
-	mata : scale_delta = max(y:*exp(-X*beta_initial :- ln(mean(y:*exp(-X*beta_initial)))))
+	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial)))))
 	local almost_conv = 1e-4
 *** loop with iOLS_delta and/or iOLS_MP
 if "`warm'" != "" {
@@ -545,7 +545,7 @@ values = (tokens(st_local("delta_path")))
 	criteria = 1000
     printf("Solving for delta equal to: %f\n", delta)
 	for (i=1; i<=max ; i++) {
-	xb_hat_M = X*beta_initial 
+	xb_hat_M = PX*beta_initial 
 	diff = y_tilde - Py_tilde
 	alpha = log(mean(y:*exp(-xb_hat_M)))
 	c_hat = mean(log(y :+ delta:*exp(alpha :+ xb_hat_M))) :- mean(alpha  :+ xb_hat_M)
@@ -590,7 +590,7 @@ printf("     Calculating Exact Estimate (Convergence Crit.)\n")
 printf("=========================================================\n")
 printf("\n")
 	for (i=1; i<=max ; i++) {
-	xb_hat_M = X*beta_initial 
+	xb_hat_M = PX*beta_initial 
 	alpha = log(mean(y:*exp(-xb_hat_M)))
 	diff = y_tilde - Py_tilde
    	 y_tilde = ((y:*exp(-xb_hat_M :- alpha)  :- 1):/(1:+delta)) + xb_hat_M :+ alpha 
