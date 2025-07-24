@@ -3,8 +3,10 @@ mata: mata set matafavor speed
 mata: mata set matastrict off
 cap program drop iOLS_MP_HDFE
 program define iOLS_MP_HDFE, eclass 
-syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1) LIMit(real 1e-4) WARM OFFset(string) from(name) checkzero(real 1) aweight(varlist) MAXimum(real 10000) ABSorb(string) SHOW  FIXED Robust CLuster(string)]        
-/*         PARSE TEXT       */
+syntax varlist [if] [in] [aweight pweight fweight iweight] [, rho(real 1) delta_path(string) LIMit(real 1e-3) WARM OFFset(string) from(name) checkzero(real 1) aweight(varlist) MAXimum(real 10000) ABSorb(string) SHOW  FIXED Robust CLuster(string)]        
+*------------------------------------------------------------------------------*
+*--------------------------     PARSE TEXT     --------------------------------* 
+*------------------------------------------------------------------------------*
 	marksample touse
 	markout `touse'  `cluster', s     
 	if  "`robust'" !="" {
@@ -21,19 +23,28 @@ syntax varlist [if] [in] [aweight pweight fweight iweight] [, DELta(real 1) LIMi
 	gettoken dvar list_var : list_var // change 
 gettoken _rhs list_var : list_var, p("(")
 tempvar depvar 
-qui: gen `depvar' = `dvar'
-foreach var of varlist `depvar' `_rhs' {   // drop missing observations
+qui: gen `depvar' = `dvar' // normalize outcome variable
+qui:replace `depvar' = `depvar'/r(mean)
+*------------------------------------------------------------------------------*
+*---------------------------     DATA CLEANING     ----------------------------* 
+*------------------------------------------------------------------------------*
+*** drop missing observations 
+foreach var of varlist `depvar' `_rhs' {   
 quietly replace `touse' = 0 if missing(`var')
 }
+
+*** drop groups with only zeros 
 tempvar  _mean _ones
 qui: gen `_ones' = `depvar' == 0
     if "`absorb'" !="" {
-foreach var of varlist `absorb' {   // drop missing observations
+foreach var of varlist `absorb' {   
 cap drop `_mean'
 qui: gegen `_mean' = mean(`_ones'), by(`var')
 qui: replace `touse' = 0 if `_mean' == 1
 }
 }
+
+*** drop groups with only zeros (in rhs, not in absorb)
 foreach var of varlist `_rhs'{
 	qui: gdistinct `var'
 	if (r(ndistinct)<3) {
@@ -43,15 +54,13 @@ qui: replace `touse' = 0 if `_mean' == 1
 	}
 }
 qui: sum `depvar' if `touse' & `depvar'>0
-mata: mean_y = `r(mean)'
-/*         ALGORITHM CHOICE       */	
-// first present code for case with no fixed effects
-// speed gains from the absence of HDFE calls
-********************************************************************************
-*********************// ESTIMATION WITHOUT FIXED EFFECTS //*********************
-********************************************************************************
+mata: mean_y = `r(mean)' // used to normalize variables during calculations 
+qui:replace `depvar' = `depvar'/r(mean)
+*------------------------------------------------------------------------------*
+*------------------------  GPML: CASE WITHOUT FIXED EFFECTS  ------------------* 
+*------------------------------------------------------------------------------*
 if "`absorb'" == ""{
-/*         CHECK FOR SEPERATION : CORREIRA CODE      */	
+***  use sergio correira code to check for separation (see github)    	
 loc tol = 1e-5
 tempvar u w xb
 quietly: gen `u' =  !`depvar' if `touse'
@@ -76,12 +85,14 @@ quietly:	drop `xb' `w'
 }
 quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 }
-/*         DROP COLLINEAR VARIABLES      */	
+
+*** drop collinear variables 
 	cap drop _COPY_cste
 	gen _COPY_cste = 1
     quietly: _rmcoll `_rhs'  if `touse', forcedrop 
 	local var_list `r(varlist)' 
-/*         PREPARE iOLS       */	
+	
+*** prepare variables for MATA
 	cap drop y_tild
 	quietly gen y_tild = ln(1+`depvar') if `touse'
 	mata : X=.
@@ -90,7 +101,8 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	mata : st_view(X,.,"`var_list' _COPY_cste","`touse'")
 	mata : st_view(y_tilde,.,"y_tild","`touse'")
 	mata : st_view(y,.,"`depvar'","`touse'")
-		mata w = .
+	mata w = .
+*** weighted regression 
 	if "`aweight'"!=""{
 	mata : st_view(w,.,"`aweight'","`touse'")
 	di in red "Analytical Weights - each obseration is weighted by : sqrt(w)"
@@ -98,9 +110,8 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	mata : invXX = invsym(cross(X,X))
 	if "`aweight'" != ""{
 	mata : invXX = invsym(cross(X,w,X))
-
 	}
-/*         SET INITIAL VALUES       */	
+*** calculate initial values 
 capture	 confirm matrix `from'
 if _rc==0 {
 	mata : beta_initial = st_matrix("`from'")
@@ -109,25 +120,34 @@ if _rc==0 {
 else {
 	mata : beta_initial = invXX*cross(X,y_tilde) // reg on log (1 + y)/max(y)
 }
-/*        INTIALIZE LOOP       */	
+*** prepare to launch loops
 	mata: xb_hat = .
 	mata: beta_new = .
 	mata: past_criteria = .
 	mata : criteria = 10000 
-	mata : delta = `delta'
+	mata : delta = 1
 	local k = 1
 	local eps = 1000	
 	mata: scale_delta = max(y:*exp(-X*beta_initial :-  ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))))
 	mata: stop_crit = 0
-/*         iOLS LOOP       */	
+*** launch iOLS_delta and/or iOLS_MP 
 if "`warm'" != ""{
+	if "`delta_path'" == ""{ // if no delta_path, calculate one
+    mata: st_local("s1", strofreal(scale_delta*exp(-4)))
+    mata: st_local("s2", strofreal(scale_delta*exp(-2)))
+    mata: st_local("s3", strofreal(scale_delta))
+    mata: st_local("s4", strofreal(scale_delta*exp(1)))
+	local delta_path =  "`s1' `s2' `s3' `s4'"
+	di "    "
+	di "Estimated Delta Path: `delta_path'"
+	}
 mata: loop_function_D_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,scale_delta,stop_crit)	
 }
-mata: delta = 2.5
+	mata : delta = `rho' // provided, or equal to 1 
 mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
-/*         COVARIANCE MATRIX CALCULATION       */	
+*** Covariance Matrix Calculation	
 	mata: alpha = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
-	mata : beta_initial[(cols(X)),1] = alpha
+	mata: beta_initial[(cols(X)),1] = alpha
 	mata: xb_hat = X*beta_initial
 	mata: ui = y:*exp(-xb_hat)
 	mata: weight = ui:/(1 :+ delta)
@@ -149,7 +169,7 @@ mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,be
 	mata : invXpIWX = invsym(cross(X, weight, X))
 	mata : Sigma_tild = invXpIWX*Sigma_0*invXpIWX
  	mata: st_matrix("Sigma_tild", Sigma_tild)
-/*         REPORT RESULTS       */	
+*** Prepare ereturn to return results 
 	local names : colnames beta_final
 	local nbvar : word count `names'
 	mat rownames Sigma_tild = `names' 
@@ -160,13 +180,13 @@ mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,be
     cap drop iOLS_MP_HDFE_xb_hat
 	cap drop iOLS_MP_HDFE_error
 	cap drop y_tild
-/*         RESTORE PRE-NORMALIZED VALUES       */
+*** Restore Variables 
     mata : xb_hat = (xb_hat :+ ln(mean_y))
     mata : ui  = y:*exp(-xb_hat)
     mata: st_store(., st_addvar("double", "iOLS_MP_HDFE_error"), "_COPY", ui)
     mata: st_store(., st_addvar("double", "iOLS_MP_HDFE_xb_hat"),"_COPY", xb_hat)
 	cap drop _COPY
-/*         EXPORT CONSTANTS       */	
+*** export back to stata 	
 ereturn scalar delta = `delta'
 ereturn  scalar eps =   `eps'
 ereturn  scalar niter =  `k'
@@ -177,15 +197,14 @@ di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
 ereturn display	
 }
 
-********************************************************************************
-**************// ESTIMATION WITH FIXED EFFECTS //       ************************
-********************************************************************************
 
+*------------------------------------------------------------------------------*
+*------------------------ HDFE: CASE WITH FIXED EFFECTS  ----------------------* 
+*------------------------------------------------------------------------------*
 
 if "`absorb'" != "" {
-// case with covariates to absorb 
 if "`nocheck'" == "1"{
-/*         CHECK FOR SEPERATION : CORREIRA CODE      */	
+*** check for separation following correira (see github)
 loc tol = 1e-5
 tempvar u w xb e
 quietly: gen `u' =  !`depvar' if `touse'
@@ -211,22 +230,25 @@ quietly:	drop `xb' `w'
 quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 }
 }
-/*         DROP COLLINEAR VARIABLES      */	
+
+*** drop collinear variables 	
 cap drop _COPY_cste
 quietly:	gen _COPY_cste = 1
 quietly: _rmcoll `_rhs' _COPY_cste , forcedrop 
 local var_list `r(varlist)'
-/*         PREPARE iOLS      */	
+
+*** prepare for looping 
 cap drop M0_*
 cap drop Y0_*
 cap drop xb_hat*
 local is_cache 1
+*** weighted regression
 	if "`aweight'"!=""{
 		di in red "Analytical Weights - each obseration is weighted by : sqrt(w)"
 		local aw "aw = `aweight'"
 	}
 quietly hdfe `var_list' if `touse' [`aw'] , absorb(`absorb') generate(M0_)  acceleration(sd)   transform(sym)
-local df_a = e(df_a)
+local df_a = e(df_a) // used to correct degrees of freedom 
 cap drop y_tild
 quietly gen y_tild = ln(1+`depvar') if `touse'
 quietly	hdfe y_tild if `touse' [`aw'] , absorb(`absorb') generate(Y0_) acceleration(sd)   transform(sym)  tolerance(1e-3) 
@@ -240,9 +262,8 @@ quietly	hdfe y_tild if `touse' [`aw'] , absorb(`absorb') generate(Y0_) accelerat
 	mata : st_view(y_tilde,.,"y_tild","`touse'")
 	mata : st_view(Py_tilde,.,"Y0_","`touse'")
 	mata : st_view(y,.,"`depvar'","`touse'")	
-	mata: delta = `delta'
 	mata : invPXPX = invsym(cross(PX,PX))
-/*         INITIAL VALUES      */	
+*** initial values 	
 capture	 confirm matrix `from'
 if _rc==0 {
 	mata : beta_initial = st_matrix("`from'")
@@ -251,7 +272,7 @@ if _rc==0 {
 else {
 	mata : beta_initial = invPXPX*cross(PX,Py_tilde) 
 }
-/*         PREPARE LOOP      */	
+*** prepare for loop 
 	mata : criteria = 1000
 	mata : xb_hat = .
 	mata:  xb_hat_M = .
@@ -267,14 +288,24 @@ else {
 	mata: stop_crit = 0
 	mata: xb_hat_N = .
 	mata: diff = .
-	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial)))))
-/*          LOOP      */	
+	mata: delta = 1
+	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial))))) 
+*** loop with iOLS_delta and/or iOLS_MP
 if "`warm'" != ""{
+	if "`delta_path'" == ""{ // if no delta_path, calculate one
+    mata: st_local("s1", strofreal(scale_delta*exp(-4)))
+    mata: st_local("s2", strofreal(scale_delta*exp(-2)))
+    mata: st_local("s3", strofreal(scale_delta))
+    mata: st_local("s4", strofreal(scale_delta*exp(1)))
+	local delta_path =  "`s1' `s2' `s3' `s4'"
+	di "    "
+	di "Estimated Delta Path: `delta_path'"
+	}
 	mata: loop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria,scale_delta)
 }
-	mata: delta = 2.5
+	mata : delta = `rho'
 	mata: loop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
-/*         VARIANCE COVARIANCE CALCULATIONS      */	
+*** variance covariance calculation
  	mata: ui = y:*exp(-xb_hat_M :- log(mean( y:*exp(-xb_hat_M  ))))
 	mata: weight =  ui :/ (1 :+ delta)
   	foreach var in `var_list' {     // rename variables for last ols
@@ -292,7 +323,7 @@ local df_r = e(df_r) - `df_a'
  if "`cluster'" !="" {
  local df_r = e(df_r) 
 }
-/*         REPORT RESULTS      */	
+*** report results 	
 	matrix beta_final = e(b) // 
 	matrix Sigma = (e(df_r) / `df_r')*e(V)
 	foreach var in `var_list' {      // rename variables back
@@ -311,13 +342,13 @@ local df_r = e(df_r) - `df_a'
 	cap drop _COPY
 	quietly: gen _COPY = `touse'
     ereturn post beta_final Sigma_tild , obs(`=e(N)') depname(`dvar') esample(`touse')  dof(`df_r')
-/*         POST ESTIMATION RESULTS      */
+*** report results (ereturn)
 cap drop iOLS_MP_HDFE_error
 cap drop _reghdfe*
 cap drop y_tild
-mata: ui = y:*exp(-xb_hat_M :- log(mean_y) :- log(mean( y:*exp(-xb_hat_M  ))))
+mata: ui = y:*exp(-xb_hat_M :- log(mean_y) :- log(mean( y:*exp(-xb_hat_M  )))) // beware, normalization
 mata: st_store(., st_addvar("double", "iOLS_MP_HDFE_error"), "_COPY", ui)
-ereturn scalar delta = `delta'
+ereturn scalar rho = `rho'
 ereturn scalar eps =   `eps'
 ereturn scalar niter =  `k'
 ereturn local cmd "iOLS_HDFE_MP"
@@ -330,42 +361,17 @@ ereturn display
 }
 end
 
-// ADD FUNCTIONS //
+*------------------------------------------------------------------------------*
+*------------------------ FUNCTIONS REPOSITORY --------------------------------* 
+*------------------------------------------------------------------------------*
+
 cap: mata: mata drop loop_function_nofe()
 cap: mata: mata drop loop_function_D_nofe()
 cap: mata: mata drop loop_function_D() 
 cap: mata: mata drop loop_function_D_fe() 
 
-mata:
-void function loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
-{
-criteria = 1000
-past_criteria = 10000
-max = strtoreal(st_local("maximum"))
-lim = strtoreal(st_local("limit"))
-show = st_local("show")
-weight = st_local("aweight")
-	for (i=1; i<=max;i++) {
-	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
-	xb_hat = X*beta_initial 
-	y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat
-	if (weight=="")  beta_new = invXX*cross(X,y_tilde) ;;
-	if (weight!="")  beta_new = invXX*cross(X,w,y_tilde) ;;
-	past_criteria = criteria
-	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) display("Convergence Issue: consider using the warm startup.") ;; 
-	if (past_criteria<criteria) delta = delta*1.05 ;;
-	if (past_criteria<criteria) criteria = past_criteria ;;
-	if (past_criteria>criteria) beta_initial = beta_new ;;
- 	if (i == 1) display("------------- Final Estimation Step -------------") ;; 	
-	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
- 	if (criteria < lim) i=max+1;; // puts an end to the loop 
-	if (mod(i,10)==0) criteria ;;
-	}
-}
-end 
-
-
+************************** A - NO FIXED EFFECTS ******************************** 
+** iOLS_delta loop 
 mata:
 void function loop_function_D_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,scale_delta,stop_crit)
 {
@@ -373,12 +379,18 @@ max = strtoreal(st_local("maximum"))
 lim = strtoreal(st_local("limit"))
 show = st_local("show")
 weight = st_local("aweight")
-k = 0
-delta = exp(-5)*scale_delta
+printf("\n")
+printf("=========================================================\n")
+printf("     Calculating Preliminary Estimate (iOLS-delta) \n")
+printf("=========================================================\n")
+printf("\n")
 stop_crit = 0
- while (stop_crit == 0 & (k<6)) {
+values = (tokens(st_local("delta_path")))
+for (k = 1; k <= length(values); k++) {
+    delta = strtoreal(values[k])
  	beta_history = beta_initial
 	criteria = 1000
+    printf("Solving for delta equal to: %f\n", delta)
 	for (i=1; i<=max;i++) {
 	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	xb_hat_M = X*beta_initial
@@ -396,17 +408,104 @@ stop_crit = 0
 	if (show != "") delta;;
 	if (show != "") k;;
 	}
-k = k + 1
 beta_contemporary = beta_new 
-if (k==1) display("------------- Warm Statup (iOLS_delta) -------------") ;;
-(max(abs(beta_contemporary:-beta_history)))
-stop_crit = (max(abs(beta_contemporary:-beta_history)))<1e-4
-if (stop_crit==0) delta = exp(k):*scale_delta;;
+if (max(abs(beta_contemporary:-beta_history))<lim) k = length(values) + 1
 	}
 }
 end
 
+** iOLS_MP loop 
 
+mata:
+void function loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
+{
+criteria = 1000
+past_criteria = 10000
+max = strtoreal(st_local("maximum"))
+lim = strtoreal(st_local("limit"))
+show = st_local("show")
+weight = st_local("aweight")
+printf("\n")
+printf("=========================================================\n")
+printf("     Calculating Exact Estimate (Convergence Crit.)\n")
+printf("=========================================================\n")
+printf("\n")
+	for (i=1; i<=max;i++) {
+	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
+	xb_hat = X*beta_initial 
+	y_tilde = ((y:*exp(-xb_hat) :- 1):/(1:+delta)) + xb_hat
+	if (weight=="")  beta_new = invXX*cross(X,y_tilde) ;;
+	if (weight!="")  beta_new = invXX*cross(X,w,y_tilde) ;;
+	past_criteria = criteria
+	criteria = max(abs(beta_new:-beta_initial))
+	if (past_criteria<criteria) display("Convergence Issue: consider using the warm startup.") ;; 
+	if (past_criteria<criteria) delta = delta*1.05 ;;
+	if (past_criteria<criteria) criteria = past_criteria ;;
+	if (past_criteria>criteria) beta_initial = beta_new ;;
+	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
+ 	if (criteria < lim) i=max+1;; // puts an end to the loop 
+	if (mod(i,1)==0) criteria ;;
+	}
+printf("\n")
+printf("=========================================================\n")
+printf("     Final Estimation Results:\n")
+printf("=========================================================\n")
+printf("\n")
+}
+end 
+
+
+
+************************** B - WITH FIXED EFFECTS ******************************** 
+*** iOLS_delta_HDFE loop
+mata:
+void function loop_function_D(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria,scale_delta)
+{
+ max = strtoreal(st_local("maximum"))
+ lim = strtoreal(st_local("limit"))
+ show = st_local("show")
+ weight = st_local("aweight")
+printf("\n")
+printf("=========================================================\n")
+printf("     Calculating Preliminary Estimate (iOLS-delta) \n")
+printf("=========================================================\n")
+printf("\n")
+stop_crit = 0 
+values = (tokens(st_local("delta_path")))
+ for (k = 1; k <= length(values); k++) {
+    delta = strtoreal(values[k])
+ 	beta_history = beta_initial
+	criteria = 1000
+    printf("Solving for delta equal to: %f\n", delta)
+	for (i=1; i<=max ; i++) {
+	xb_hat_M = X*beta_initial
+	alpha = log(mean(y:*exp(-xb_hat_M)))
+	c_hat = mean(log(y :+ delta:*exp(alpha :+ xb_hat_M))) :- mean(alpha  :+ xb_hat_M)
+	diff = y_tilde - Py_tilde 
+	y_tilde = log(y :+ delta:*exp(xb_hat_M)) :- c_hat
+	stata("cap drop y_tild")
+	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
+	stata("cap drop Y0_")
+    if (weight=="")  stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  acceleration(sd)  tolerance(\`almost_conv')  transform(sym)  ") ;;
+   	if (weight!="")  stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv') acceleration(sd)   transform(sym)  ") ;;	
+	st_view(Py_tilde,.,"Y0_",touse)
+	beta_new = invPXPX*cross(PX,Py_tilde)
+	criteria = max(abs(beta_new:-beta_initial))
+	beta_initial = beta_new
+	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
+	if ((i == 1) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) iOLS_delta Step Number") ;; 
+ 	if (criteria < lim) i=max+1 ;; // puts an end to the loop 
+	if (show != "") criteria;;
+	if (show != "") delta;;
+	if (show != "") i;;
+								}
+beta_contemporary = beta_new 
+if (max(abs(beta_contemporary:-beta_history))<lim) k = length(values) + 1
+	}
+}
+end
+
+*** iOLS_MP_HDFE loop
 
 mata:
 void function loop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
@@ -417,8 +516,13 @@ void function loop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_
  lim = strtoreal(st_local("limit"))
  show = st_local("show")
  weight = st_local("aweight")
+printf("\n")
+printf("=========================================================\n")
+printf("     Calculating Exact Estimate (Convergence Crit.)\n")
+printf("=========================================================\n")
+printf("\n")
 	for (i=1; i<=max;i++) {
- 	xb_hat_M = PX*beta_initial
+ 	xb_hat_M = X*beta_initial 
 	alpha = log(mean(y:*exp(-xb_hat_M)))
 	diff = y_tilde - Py_tilde
 	y_tilde = ((y:*exp(-xb_hat_M :- alpha) :- 1):/(1:+delta)) :+ xb_hat_M  :+ alpha
@@ -432,67 +536,28 @@ void function loop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
  	if (past_criteria<criteria) delta = delta*1.05 ;;
-	if (past_criteria<criteria) display("Convergence Issue: consider using the warm startup.") ;; 
+// 	if (past_criteria<criteria) display("Convergence Issue: consider using the warm startup.") ;; 
  	if (past_criteria<criteria) criteria = past_criteria ;;
  	if (past_criteria>criteria) beta_initial = beta_new ;;
- 	if (i == 1) display("------------- Final Estimation Step -------------") ;; 
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
-	if (mod(i,10)==0) criteria ;;
+	if (mod(i,1)==0) criteria ;;
 	}
+printf("\n")
+printf("=========================================================\n")
+printf("     Final Estimation Results:\n")
+printf("=========================================================\n")
+printf("\n")
 }
 end
 
 
-mata:
-void function loop_function_D(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria,scale_delta)
-{
- max = strtoreal(st_local("maximum"))
- lim = strtoreal(st_local("limit"))
- show = st_local("show")
- weight = st_local("aweight")
- k = 0
- delta = exp(-5)*scale_delta
- stop_crit = 0
- while (stop_crit == 0 & (k<6)) {
- 	beta_history = beta_initial
-	criteria = 1000
-	for (i=1; i<=max ; i++) {
-	xb_hat_M = PX*beta_initial
-	alpha = log(mean(y:*exp(-xb_hat_M)))
-	c_hat = mean(log(y :+ delta:*exp(alpha :+ xb_hat_M))) :- mean(alpha  :+ xb_hat_M)
-	diff = y_tilde - Py_tilde 
-	y_tilde = log(y :+ delta:*exp(xb_hat_M)) :- c_hat
-	stata("cap drop y_tild")
-	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
-	stata("cap drop Y0_")
-    	if (weight=="")  stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  acceleration(sd)  tolerance(\`almost_conv')  transform(sym)  ") ;;
-   	if (weight!="")  stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv') acceleration(sd)   transform(sym)  ") ;;	
-	st_view(Py_tilde,.,"Y0_",touse)
-	beta_new = invPXPX*cross(PX,Py_tilde)
-	criteria = max(abs(beta_new:-beta_initial))
-	beta_initial = beta_new
-	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
-	if ((i == 1) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) iOLS_delta Step Number") ;; 
- 	if (criteria < lim) i=max+1 ;; // puts an end to the loop 
-	if (show != "") criteria;;
-	if (show != "") delta;;
-	if (show != "") k;;
-		}
-k = k + 1
-beta_contemporary = beta_new 
-if (k==1) display("------------- Warm Statup (iOLS_delta) -------------") ;;
-(max(abs(beta_contemporary:-beta_history)))
-stop_crit = (max(abs(beta_contemporary:-beta_history)))<lim
-if (stop_crit==0) delta = exp(k):*delta ;;
-	}
-}
-end
+
+
 /*
-
 ** - Example
 * Set the number of individuals (N) and time periods (T)
-local N = 200000
+local N = 500
 local T = 2
 set seed 1234
 * Create a dataset with all combinations of individuals and time periods
@@ -502,11 +567,10 @@ gen id = _n
 expand `T'
 bysort id: gen time = _n
 
-* Generate individual-specific effects (alpha)
-gen alpha = rnormal(-0.5, 0.5)
 
 * Generate time-specific effects (gamma)
 gen gamma = rnormal(-0.5, 0.5)
+gen alpha = rnormal(0.5, 0.5)
 
 * Create a time variable with common shocks across individuals
 egen gamma_t = mean(gamma), by(time)
@@ -516,12 +580,12 @@ egen alpha_i = mean(alpha), by(id)
 gen X1 =  runiform(0, 1) + alpha_i - gamma_t
 gen X2 =  rnormal(0, 1) + X1 - alpha_i + gamma_t
 gen Z  =  rnormal(0,1) -gamma_t + alpha_i
-gen D  =  rnormal(0, 1) - alpha_i + gamma_t - 3*Z
+gen D  =  rnormal(0, 1) - X1 - X2 - alpha_i + gamma_t - 3*Z
 * Generate idiosyncratic errors (epsilon)
 gen epsilon = runiform(0, 2)
-gen Y = exp(2*X1 + 2*X2 + 2*D - gamma_t )*epsilon
+gen Y = exp(2*X1 + 2*X2 + 2*D - gamma_t - ln(abs(0.01+alpha_i))*0.1 )*epsilon
 gen wvar = (uniform())*1000 // random weights 
 * Create a dependent variable (Y) based on a linear model
-xi: iOLS_MP_HDFE Y X1 X2 D  i.gamma_t ,   nowarm 
-iOLS_MP_HDFE Y X1 X2 D , absorb(gamma_t )    nowarm
+ xi: iOLS_MP_HDFE Y X1 X2 D  i.gamma_t  i.id,   warm delta_path(1 10 100)
+iOLS_MP_HDFE Y X1 X2 D , absorb(gamma_t id )    warm delta_path(1 10 100)
 */
