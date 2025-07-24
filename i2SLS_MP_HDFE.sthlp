@@ -48,7 +48,8 @@ It addresses the problem of the log of zero by iteratively running the {cmd:regh
 {synoptset 22 tabbed}{...}
 {synopthdr:Options}
 {synoptline}
-{synopt:{opt delta(#)}} Set a strictly positive constant for delta (defaults to 1){p_end}
+{synopt:{opt rho(#)}} Set a strictly positive constant for initial rho (defaults to 1){p_end}
+{synopt:{opt delta_path(#)}} Set a series of delta for warm startup such as delta_path(1 10 100){p_end}
 {synopt:{opt endog(varlist)}} Specifies endogenous variables{p_end}
 {synopt:{opt instr(varlist)}} Specifies instruments{p_end}
 {synopt:{opt absorb(varlist)}} Categorical variables treated as fixed effects{p_end}
@@ -96,8 +97,8 @@ month={Sep}}
 {title:Examples}
 
 {phang2}{cmd:. use "http://fmwww.bc.edu/RePEc/bocode/i/ivp_bwt.dta", replace}{p_end}
-{phang2}{cmd:. i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)}{p_end}
-{phang2}{cmd:. i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) robust}{p_end}
+{phang2}{cmd:. i2SLS_MP_HDFE bw parity white male, warm endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)}{p_end}
+{phang2}{cmd:. i2SLS_MP_HDFE bw parity white, warm delta_path(1 10 100) endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) robust}{p_end}
 {phang2}{cmd:. i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) limit(1e-3) maximum(100)}{p_end}
 
 {marker results}{...}
