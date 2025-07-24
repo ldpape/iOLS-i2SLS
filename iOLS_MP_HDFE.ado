@@ -24,7 +24,6 @@ syntax varlist [if] [in] [aweight pweight fweight iweight] [, rho(real 1) delta_
 gettoken _rhs list_var : list_var, p("(")
 tempvar depvar 
 qui: gen `depvar' = `dvar' // normalize outcome variable
-qui:replace `depvar' = `depvar'/r(mean)
 *------------------------------------------------------------------------------*
 *---------------------------     DATA CLEANING     ----------------------------* 
 *------------------------------------------------------------------------------*
@@ -53,9 +52,9 @@ qui: gegen `_mean' = mean(`_ones'), by(`var')
 qui: replace `touse' = 0 if `_mean' == 1	
 	}
 }
-qui: sum `depvar' if `touse' & `depvar'>0
-mata: mean_y = `r(mean)' // used to normalize variables during calculations 
-qui:replace `depvar' = `depvar'/r(mean)
+*qui: sum `depvar' if `touse' & `depvar'>0
+*mata: mean_y = `r(mean)' // used to normalize variables during calculations 
+*qui:replace `depvar' = `depvar'/r(mean)
 *------------------------------------------------------------------------------*
 *------------------------  GPML: CASE WITHOUT FIXED EFFECTS  ------------------* 
 *------------------------------------------------------------------------------*
@@ -181,13 +180,13 @@ mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,be
 	cap drop iOLS_MP_HDFE_error
 	cap drop y_tild
 *** Restore Variables 
-    mata : xb_hat = (xb_hat :+ ln(mean_y))
+    *mata : xb_hat = (xb_hat :+ ln(mean_y))
     mata : ui  = y:*exp(-xb_hat)
     mata: st_store(., st_addvar("double", "iOLS_MP_HDFE_error"), "_COPY", ui)
     mata: st_store(., st_addvar("double", "iOLS_MP_HDFE_xb_hat"),"_COPY", xb_hat)
 	cap drop _COPY
 *** export back to stata 	
-ereturn scalar delta = `delta'
+ereturn scalar delta = `rho'
 ereturn  scalar eps =   `eps'
 ereturn  scalar niter =  `k'
 ereturn scalar df_r = `dof'
@@ -289,7 +288,7 @@ else {
 	mata: xb_hat_N = .
 	mata: diff = .
 	mata: delta = 1
-	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial))))) 
+	mata : scale_delta = max(y:*exp(-X*beta_initial :- ln(mean(y:*exp(-X*beta_initial))))) 
 *** loop with iOLS_delta and/or iOLS_MP
 if "`warm'" != ""{
 	if "`delta_path'" == ""{ // if no delta_path, calculate one
