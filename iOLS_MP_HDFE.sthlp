@@ -23,7 +23,7 @@
 {title:Description}
 
 {pstd} {cmd:iOLS_MP_HDFE} implements iterated Ordinary Least Squares for Gamma Pseudo Maximum Likelihood (GPML), as described by {browse "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3444996":Bellego, Benatia, and Pape (2021)}. 
-It addresses the problem of the log of zero by iteratively running the {cmd:reghdfe} function. Convergence is controlled with the option {cmd:delta(#)} (default: 1).{p_end}
+It addresses the problem of the log of zero by iteratively running the {cmd:reghdfe} function. Convergence is controlled with the option {cmd:rho(#). Estimation takes place in two-steps: 1) iOLS_delta provides an approximate solution to form a warm start (option warm) for any delta_path, 2) iOLS_MP_HDFE provides an exact solution.{p_end}
 
 {pstd} The program applies a within-transformation to difference out high-dimensional fixed effects using the HDFE package from {browse "http://scorreia.com/research/hdfe.pdf":Sergio Correia (2017)}. The syntax is consistent with {cmd:reghdfe}.
 
@@ -48,6 +48,8 @@ It addresses the problem of the log of zero by iteratively running the {cmd:regh
 {synoptset 22 tabbed}{...}
 {synopthdr}
 {synoptline}
+{synopt:{opt rho(#)}} Set a strictly positive constant for initial rho (defaults to 1){p_end}
+{synopt:{opt delta_path(#)}} Set a series of delta for warm startup such as delta_path(1 10 100){p_end}
 {synopt:{opt absorb}{cmd:(}{help iOLS_MP_HDFE##absorb:absorb}{cmd:)}} Categorical variables to treat as fixed effects {p_end}
 {synopt:{opt vce}{cmd:(}{help iOLS_MP_HDFE##opt_vce:vcetype}{cmd:)}} Specify variance-covariance estimator: {opt robust}, {opt cluster} for clustering {p_end}
 {synopt:{opt limit}{cmd:(}{help iOLS_MP_HDFE##limit:limit}{cmd:)}} Convergence criteria (default: 1e-3) {p_end}
@@ -75,8 +77,11 @@ Bellégo, Christophe, Benatia, David, and Pape, Louis-Daniel, Dealing with Logs 
 {title:Examples}
 
 {phang2}{cmd:. sysuse auto.dta, replace}{p_end}
-{phang2}{cmd:. xi: iOLS_MP_HDFE price mpg i.foreign, robust}{p_end}
-{phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) robust}{p_end}
+{phang2}{cmd:. xi: iOLS_MP_HDFE price mpg i.foreign,  robust}{p_end}
+{phang2}{cmd:. xi: iOLS_MP_HDFE price mpg i.foreign, warm robust}{p_end}
+{phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign)  robust}{p_end}
+{phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) warm  robust}{p_end}
+{phang2}{cmd:. iOLS_MP_HDFE price mpg, absorb(foreign) warm delta_path(1 10 100) robust}{p_end}
 
 {marker results}{...}
 {title:Stored Results}
