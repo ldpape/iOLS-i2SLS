@@ -22,7 +22,7 @@
 {title:Description}
 
 {pstd} {cmd:i2SLS_MP_HDFE} implements iterated Two Stage Least Squares for Gamma Pseudo Maximum Likelihood (GPML), as described by {browse "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3444996":Bellego, Benatia, and Pape (2021)}. 
-It addresses the problem of the log of zero by iteratively running the {cmd:reghdfe} function. Convergence is controlled with the option {cmd:delta(#)} (default: 1).{p_end}
+It addresses the problem of the log of zero by iteratively running the {cmd:reghdfe} function. Convergence is controlled with the option {cmd:rho(#)}.  Estimation takes place in two-steps: 1) iOLS_delta provides an approximate solution to form a warm start (option warm) for any delta_path, 2) iOLS_MP_HDFE provides an exact solution. {p_end}
 
 {pstd} The package applies a within-transformation to remove high-dimensional fixed effects, relying on the HDFE package developed by {browse "http://scorreia.com/research/hdfe.pdf":Sergio Correia (2017)}. The syntax is based on reghdfe.
 
