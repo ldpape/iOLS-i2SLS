@@ -49,9 +49,9 @@ qui: gegen `_mean' = mean(`_ones'), by(`var')
 qui: replace `touse' = 0 if `_mean' == 1	
 	}
 }
-qui: sum `depvar' if `touse' & `depvar'>0
-mata: mean_y = `r(mean)'
-qui:replace `depvar' = `depvar'/r(mean)
+*qui: sum `depvar' if `touse' & `depvar'>0
+*mata: mean_y = `r(mean)'
+*qui:replace `depvar' = `depvar'/r(mean)
 *------------------------------------------------------------------------------*
 *------------------------  GPML: CASE WITHOUT FIXED EFFECTS  ------------------* 
 *------------------------------------------------------------------------------*
@@ -186,7 +186,7 @@ if "`warm'" != "" {
 *** Restore Variables 
 	cap drop i2SLS_MP_HDFE_xb_hat
 	cap drop i2SLS_MP_HDFE_error	
-    mata : xb_hat = (xb_hat :+ ln(mean_y))
+    *mata : xb_hat = (xb_hat :+ ln(mean_y))
     mata : ui  = y:*exp(-xb_hat)
     mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_error"), "_COPY", ui)
     mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_xb_hat"),"_COPY", xb_hat)
@@ -326,7 +326,7 @@ else {
 	mata: c_hat = .
 	mata: delta = 1 
 	mata: stop_crit = 0
-	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial)))))
+	mata : scale_delta = max(y:*exp(-X*beta_initial :- ln(mean(y:*exp(-X*beta_initial)))))
 	local almost_conv = 1e-4
 *** loop with iOLS_delta and/or iOLS_MP
 if "`warm'" != "" {
@@ -403,7 +403,8 @@ local df_r = e(Fdf2) - `df_a'
 	cap drop _reghdfe*
 	cap drop y_tild
 *** report normalized variables 
-mata: ui = y:*exp(-xb_hat_M :- log(mean_y) :- log(mean( y:*exp(-xb_hat_M  ))))
+*mata: ui = y:*exp(-xb_hat_M :- log(mean_y) :- log(mean( y:*exp(-xb_hat_M  ))))
+mata: ui = y:*exp(-xb_hat_M  :- log(mean( y:*exp(-xb_hat_M  ))))
 mata: st_store(., st_addvar("double", "i2SLS_MP_HDFE_error"), "_COPY", ui)
 		cap drop _COPY
 *** ereturn scalars 
