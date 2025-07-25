@@ -138,7 +138,7 @@ if "`warm'" != ""{
     mata: st_local("s4", strofreal(scale_delta*exp(1)))
 	local delta_path =  "`s1' `s2' `s3' `s4'"
 	di "    "
-	di "Estimated Delta Path: `delta_path'"
+	di "Estimated ẟ - Path: `delta_path'"
 	}
 mata: loop_function_D_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,scale_delta,stop_crit)	
 }
@@ -298,7 +298,7 @@ if "`warm'" != ""{
     mata: st_local("s4", strofreal(scale_delta*exp(1)))
 	local delta_path =  "`s1' `s2' `s3' `s4'"
 	di "    "
-	di "Estimated Delta Path: `delta_path'"
+	di "Estimated ẟ - Path: `delta_path'"
 	}
 	mata: loop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria,scale_delta)
 }
@@ -437,8 +437,8 @@ printf("\n")
 	if (weight!="")  beta_new = invXX*cross(X,w,y_tilde) ;;
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) display("Convergence Issue: consider using the warm startup.") ;; 
-	if (past_criteria<criteria) delta = delta*1.05 ;;
+	if (past_criteria<criteria) delta = delta*2 ;;
+	if (past_criteria<criteria) printf("Convergence Issue - Increasing ρ to: %f\n", delta);; 
 	if (past_criteria<criteria) criteria = past_criteria ;;
 	if (past_criteria>criteria) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
@@ -534,7 +534,8 @@ printf("\n")
 	beta_new = invPXPX*cross(PX,Py_tilde)
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
- 	if (past_criteria<criteria) delta = delta*1.05 ;;
+ 	if (past_criteria<criteria) delta = delta*2 ;;
+	if (past_criteria<criteria) printf("Convergence Issue - Increasing ρ to: %f\n", delta);; 
  	if (past_criteria<criteria) criteria = past_criteria ;;
  	if (past_criteria>criteria) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
