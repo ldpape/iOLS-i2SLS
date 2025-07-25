@@ -416,7 +416,7 @@ ereturn local cmd "i2SLS_HDFE"
 ereturn local vcetype `option'
 ereturn local absvar `absorb'
 di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
-display in gr _newline(1) _column(4) as text "Absorbed Fixed-Effects: `absorb'"
+display in gr _newline(1) _column(4) "Absorbed Fixed-Effects: `absorb'"
 ereturn display
 **** drop tempvars 
 	cap drop E0_*
