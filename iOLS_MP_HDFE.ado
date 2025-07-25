@@ -194,8 +194,8 @@ ereturn local cmd "iOLS_MP_HDFE"
 ereturn local vcetype `option'
 ereturn local absvar `absorb'
 di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
-display in gr _newline(3) _column(4) as text "Absorbed Fixed-Effects: `absorb'"
 ereturn display	
+display in gr _newline(3) _column(4) as text "Absorbed Fixed-Effects: `absorb'"
 }
 
 
