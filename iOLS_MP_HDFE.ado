@@ -380,7 +380,7 @@ show = st_local("show")
 weight = st_local("aweight")
 printf("\n")
 printf("=========================================================\n")
-printf("     Calculating Preliminary Estimate (iOLS-delta) \n")
+printf("     Calculating Preliminary Estimate (iOLS-ẟ) \n")
 printf("=========================================================\n")
 printf("\n")
 stop_crit = 0
@@ -466,7 +466,7 @@ void function loop_function_D(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_ini
  weight = st_local("aweight")
 printf("\n")
 printf("=========================================================\n")
-printf("     Calculating Preliminary Estimate (iOLS-delta) \n")
+printf("     Calculating Preliminary Estimate (iOLS-ẟ) \n")
 printf("=========================================================\n")
 printf("\n")
 stop_crit = 0 
