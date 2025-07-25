@@ -280,7 +280,7 @@ else {
 	mata : past_criteria = .
 	local k = 1
 	local eps = 1000	
-	local almost_conv = 1e-5
+	local almost_conv = 1e-2
 	mata: k = .
 	mata: beta_history = .
 	mata: beta_contemporary = .
@@ -485,7 +485,7 @@ values = (tokens(st_local("delta_path")))
 	stata("cap drop y_tild")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
 	stata("cap drop Y0_")
-    if (weight=="")  stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  acceleration(sd)  tolerance(\`almost_conv')  transform(sym)  ") ;;
+        if (weight=="")  stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  acceleration(sd)  tolerance(\`almost_conv')  transform(sym)  ") ;;
    	if (weight!="")  stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv') acceleration(sd)   transform(sym)  ") ;;	
 	st_view(Py_tilde,.,"Y0_",touse)
 	beta_new = invPXPX*cross(PX,Py_tilde)
@@ -535,7 +535,6 @@ printf("\n")
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
  	if (past_criteria<criteria) delta = delta*1.05 ;;
-// 	if (past_criteria<criteria) display("Convergence Issue: consider using the warm startup.") ;; 
  	if (past_criteria<criteria) criteria = past_criteria ;;
  	if (past_criteria>criteria) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
