@@ -456,7 +456,7 @@ for (k = 1; k <= length(values); k++) {
     delta = strtoreal(values[k])
  	beta_history = beta_initial
 	criteria = 1000
-    printf("Solving for delta equal to: %f\n", delta)
+    printf("Solving for δ equal to: %f\n", delta)
 	for (i=1; i<=max ; i++) {
 	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	xb_hat = X*beta_initial 
@@ -543,7 +543,7 @@ values = (tokens(st_local("delta_path")))
     delta = strtoreal(values[k])
  	beta_history = beta_initial
 	criteria = 1000
-    printf("Solving for delta equal to: %f\n", delta)
+    printf("Solving for δ equal to: %f\n", delta)
 	for (i=1; i<=max ; i++) {
 	xb_hat_M = PX*beta_initial 
 	diff = y_tilde - Py_tilde
