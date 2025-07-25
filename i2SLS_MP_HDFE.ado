@@ -447,7 +447,7 @@ show = (st_local("show"))
 weight = st_local("aweight")
 printf("\n")
 printf("=========================================================\n")
-printf("     Calculating Preliminary Estimate (iOLS-ẟ) \n")
+printf("     Calculating Preliminary Estimate (i2SLS-ẟ) \n")
 printf("=========================================================\n")
 printf("\n")
 stop_crit = 0
@@ -469,7 +469,7 @@ for (k = 1; k <= length(values); k++) {
 	beta_initial = beta_new
  	if (criteria < 10*lim) i=max+1 ;; // puts an end to the loop 
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
-	if ((i == 1) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) iOLS_delta Step Number") ;; 
+	if ((i == 1) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) i2SLS_delta Step Number") ;; 
 	if (show != "") criteria;;
 	if (show != "") delta;;
 	if (show != "") k;;
@@ -534,7 +534,7 @@ weight = st_local("aweight")
 conv = strtoreal(st_local("almost_conv"))
 printf("\n")
 printf("=========================================================\n")
-printf("     Calculating Preliminary Estimate (iOLS-ẟ) \n")
+printf("     Calculating Preliminary Estimate (i2SLS-ẟ) \n")
 printf("=========================================================\n")
 printf("\n")
 stop_crit = 0 
@@ -560,7 +560,7 @@ values = (tokens(st_local("delta_path")))
 	criteria = max(abs(beta_new:-beta_initial))
 	beta_initial = beta_new
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
-	if ((i == max) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) iOLS_delta Step Number") ;; 
+	if ((i == max) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) i2SLS_delta Step Number") ;; 
  	if (criteria < 10*lim) i=max+1 ;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (show != "") delta;;
