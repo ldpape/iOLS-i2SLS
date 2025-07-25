@@ -589,6 +589,7 @@ printf("\n")
 printf("=========================================================\n")
 printf("     Calculating Exact Estimate (i2SLS-ρ)\n")
 printf("=========================================================\n")
+printf("Max. Abs. Differences: \n")
 printf("\n")
 	for (i=1; i<=max ; i++) {
 	xb_hat_M = PX*beta_initial 
