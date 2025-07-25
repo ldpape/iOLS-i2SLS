@@ -345,7 +345,8 @@ local df_r = e(df_r) - `df_a'
 cap drop iOLS_MP_HDFE_error
 cap drop _reghdfe*
 cap drop y_tild
-mata: ui = y:*exp(-xb_hat_M :- log(mean_y) :- log(mean( y:*exp(-xb_hat_M  )))) // beware, normalization
+//mata: ui = y:*exp(-xb_hat_M :- log(mean_y) :- log(mean( y:*exp(-xb_hat_M  )))) // beware, normalization
+mata: ui = y:*exp(-xb_hat_M :- log(mean( y:*exp(-xb_hat_M  )))) // beware, normalization
 mata: st_store(., st_addvar("double", "iOLS_MP_HDFE_error"), "_COPY", ui)
 ereturn scalar rho = `rho'
 ereturn scalar eps =   `eps'
