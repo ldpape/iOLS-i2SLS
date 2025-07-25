@@ -1,6 +1,8 @@
 # Iterated Ordinary Least Squares (iOLS) and Two Stage Least Squares (i2SLS) with High Dimensional Fixed Effects
 
-This repository includes code for iOLS_MP_HDFE and i2SLS_MP_HDFE as described in Bellégo, Benatia and Pape (2021) : https://arxiv.org/abs/2203.11820
+This repository includes code for iOLS_MP_HDFE and i2SLS_MP_HDFE as described in Bellégo, Benatia and Pape (2021) : https://arxiv.org/abs/2203.11820 .
+
+This code is preliminary and subject to frequent updates. 
 
 ## Installation 
 Before using this package, you must install the following:
@@ -50,7 +52,7 @@ You can then display the output and export it using the "estout" package.
 The syntax is different for i2SLS_MP_HDFE, as shown in the following example:
 
         use "http://fmwww.bc.edu/RePEc/bocode/i/ivp_bwt.dta", replace
-        eststo: i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)
+        eststo: i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) cluster(male)
         eststo: i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) robust
         esttab 
 
@@ -58,8 +60,17 @@ The same options to find an approximate solution are available for i2SLS_MP_HDFE
 
         use "http://fmwww.bc.edu/RePEc/bocode/i/ivp_bwt.dta", replace
         eststo: i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) warm 
-        eststo: i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) robust warm delta_path(1 10 100 1000)
+        eststo: i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) cluster(male) warm delta_path(1 10 100 1000)
         esttab 
+
+##  Options :
+- "limit( )" indicates the convergence threshold : it is set at 1e-3. Reset it by adding limit(1e-4), for example.
+- "maximum( )" indicates the maximum number of iterations in the final step : it is set at 10,000. Reset it by adding maximum(500), for example.
+- "rho( )" indicates the speed of convergence while finding the exact solution. It is set by default to one. Reset it by adding rho(10), for example.
+- "show" displays each iteration's max absolute deviation compared to the previous step.
+- "cluster( )" can be used to indicate on which variables standard errors should be clustered.
+
+Weights are not allowed at this point in time.
 
 ## Citation : 
 Please cite the following article : https://arxiv.org/abs/2203.11820
