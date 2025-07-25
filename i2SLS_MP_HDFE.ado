@@ -413,8 +413,10 @@ ereturn  scalar eps =   `eps'
 ereturn  scalar niter =  `k'
 ereturn local cmd "i2SLS_HDFE"
 ereturn local vcetype `option'
+ereturn local absvar `absorb'
 di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
 ereturn display
+display in gr _newline(3) _column(4) as text "Absorbed Fixed-Effects: `absorb'"
 **** drop tempvars 
 	cap drop E0_*
 	cap drop Z0_*
