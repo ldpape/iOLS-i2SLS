@@ -195,7 +195,6 @@ ereturn local vcetype `option'
 ereturn local absvar `absorb'
 di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
 ereturn display	
-display in gr _newline(3) _column(4) as text "Absorbed Fixed-Effects: `absorb'"
 }
 
 
@@ -355,10 +354,12 @@ ereturn scalar eps =   `eps'
 ereturn scalar niter =  `k'
 ereturn local cmd "iOLS_HDFE_MP"
 ereturn local vcetype `option'
-di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
+ereturn local absvar `absorb'
 cap drop _COPY
 cap drop Y0_*
 cap drop M0_* 
+di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
+display in gr _newline(1) _column(4) as text "Absorbed Fixed-Effects: `absorb'"
 ereturn display
 }
 end
