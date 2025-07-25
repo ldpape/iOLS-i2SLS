@@ -593,7 +593,7 @@ printf("\n")
 	xb_hat_M = PX*beta_initial 
 	alpha = log(mean(y:*exp(-xb_hat_M)))
 	diff = y_tilde - Py_tilde
-   	 y_tilde = ((y:*exp(-xb_hat_M :- alpha)  :- 1):/(1:+delta)) + xb_hat_M :+ alpha 
+   	y_tilde = ((y:*exp(-xb_hat_M :- alpha)  :- 1):/(1:+delta)) + xb_hat_M :+ alpha 
 	stata("cap drop y_tild")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
 	stata("cap drop Y0_")
