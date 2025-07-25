@@ -498,7 +498,6 @@ printf("\n")
 printf("=========================================================\n")
 printf("     Calculating Exact Estimate (i2SLS-ρ)\n")
 printf("=========================================================\n")
-printf("Max. Abs. Differences: \n")
 printf("\n")
 	for (i=1; i<=max;i++) {
 	beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
@@ -592,7 +591,6 @@ printf("\n")
 printf("=========================================================\n")
 printf("     Calculating Exact Estimate (i2SLS-ρ)\n")
 printf("=========================================================\n")
-printf("Max. Abs. Differences: \n")
 printf("\n")
 	for (i=1; i<=max ; i++) {
 	xb_hat_M = PX*beta_initial 
