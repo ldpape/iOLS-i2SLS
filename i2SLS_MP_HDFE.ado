@@ -327,7 +327,7 @@ else {
 	mata: delta = 1 
 	mata: stop_crit = 0
 	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial)))))
-	local almost_conv = 1e-4
+	local almost_conv = 1e-2
 *** loop with iOLS_delta and/or iOLS_MP
 if "`warm'" != "" {
 		if "`delta_path'" == ""{ // if no delta_path, calculate one
