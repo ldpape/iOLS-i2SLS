@@ -504,13 +504,13 @@ printf("\n")
  	if (weight!="")  beta_new = invPzX*cross(Z, w , y_tilde)  ;; 
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) delta = delta*2 ;;
-	if (past_criteria<criteria) printf("Convergence Issue - Increasing ρ to: %f\n", delta);; 
-	if (past_criteria<criteria) criteria = past_criteria ;;
-	if (past_criteria>criteria) beta_initial = beta_new ;;
+	if (past_criteria<criteria & i>1) delta = delta*2 ;;
+	if (past_criteria<criteria & i>1) printf("Convergence Issue - Increasing ρ to: %f\n", delta);; 
+	if (past_criteria<criteria & i>1) criteria = past_criteria ;;
+	if (past_criteria>criteria | i==1 ) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
-	if (mod(i,1)==0) criteria ;;
+	if (mod(i,1)==0 & i>1) criteria ;;
 	}
 printf("\n")
 printf("=========================================================\n")
@@ -603,13 +603,13 @@ printf("\n")
 	beta_new = invPzX*cross(PZ,Py_tilde)
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
-	if (past_criteria<criteria) delta = delta*2 ;;
-	if (past_criteria<criteria) printf("Convergence Issue - Increasing ρ to: %f\n", delta);; 
-	if (past_criteria<criteria) criteria = past_criteria ;;
-	if (past_criteria>criteria) beta_initial = beta_new ;;
+	if (past_criteria<criteria & i>1) delta = delta*2 ;;
+	if (past_criteria<criteria & i>1) printf("Convergence Issue - Increasing ρ to: %f\n", delta);; 
+	if (past_criteria<criteria & i>1) criteria = past_criteria ;;
+	if (past_criteria>criteria | i==1) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1 ;; // puts an end to the loop 
-	if (mod(i,1)==0) criteria ;;
+	if (mod(i,1)==0 & i>1) criteria ;;
 	}
 printf("\n")
 printf("=========================================================\n")
