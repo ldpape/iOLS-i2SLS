@@ -25,17 +25,26 @@ This package is compatible with the estout package.
 
 
 ### iOLS_MP_HDFE : Exogenous covariates
-Without fixed effects, the package estimates a pseudo-GML model. 
+Without fixed effects, the package estimates a pseudo-GML model: use the prefix "xi" along with "i." if you include categorical variables.
 
         sysuse auto.dta, replace
         eststo: xi: iOLS_MP_HDFE price mpg i.foreign, robust
 
-With fixed effects, the estimates do not suffer from the incidental parameter problem. 
+Use the "absorb" option to absorb fixed effects.  Both specifications will not yield the same point estimates.
 
         eststo: iOLS_MP_HDFE price mpg, absorb(foreign) robust
-        esttab 
 
-It is normal that both modes will not yield the same point estimates.
+Include the option "warm" to first identify an approximate solution (using iOLS-ẟ) which is then rendered exact (using iOLS-ρ).
+
+        eststo: iOLS_MP_HDFE price mpg, absorb(foreign) robust warm 
+
+You can select the path to follow to approximate the final solution using "delta_path".
+
+        eststo: iOLS_MP_HDFE price mpg, absorb(foreign) robust warm delta_path(1 10 100)
+
+You can then display the output and export it using the "estout" package.
+
+          esttab
 
 ### i2SLS_MP_HDFE : Endogenous covariates
 The syntax is different for i2SLS_MP_HDFE, as shown in the following example:
@@ -43,6 +52,13 @@ The syntax is different for i2SLS_MP_HDFE, as shown in the following example:
         use "http://fmwww.bc.edu/RePEc/bocode/i/ivp_bwt.dta", replace
         eststo: i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88)
         eststo: i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) robust
+        esttab 
+
+The same options to find an approximate solution are available for i2SLS_MP_HDFE.
+
+        use "http://fmwww.bc.edu/RePEc/bocode/i/ivp_bwt.dta", replace
+        eststo: i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) warm 
+        eststo: i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) robust warm delta_path(1 10 100 1000)
         esttab 
 
 ## Citation : 
