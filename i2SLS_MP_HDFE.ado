@@ -467,7 +467,7 @@ for (k = 1; k <= length(values); k++) {
 	past_criteria = criteria
 	criteria = max(abs(beta_new:-beta_initial))
 	beta_initial = beta_new
- 	if (criteria < lim) i=max+1 ;; // puts an end to the loop 
+ 	if (criteria < 10*lim) i=max+1 ;; // puts an end to the loop 
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
 	if ((i == 1) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) iOLS_delta Step Number") ;; 
 	if (show != "") criteria;;
@@ -561,7 +561,7 @@ values = (tokens(st_local("delta_path")))
 	beta_initial = beta_new
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
 	if ((i == max) & (show != "")) display("Displaying (1) Max. Abs. Dev., (2) Delta, (3) iOLS_delta Step Number") ;; 
- 	if (criteria < lim) i=max+1 ;; // puts an end to the loop 
+ 	if (criteria < 10*lim) i=max+1 ;; // puts an end to the loop 
 	if (show != "") criteria;;
 	if (show != "") delta;;
 	if (show != "") k;;
