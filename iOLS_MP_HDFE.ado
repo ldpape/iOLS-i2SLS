@@ -359,7 +359,7 @@ cap drop _COPY
 cap drop Y0_*
 cap drop M0_* 
 di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
-display in gr _newline(1) _column(4) as text "Absorbed Fixed-Effects: `absorb'"
+display in gr _newline(1) _column(4) "Absorbed Fixed-Effects: `absorb'"
 ereturn display
 }
 end
