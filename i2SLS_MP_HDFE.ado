@@ -182,6 +182,8 @@ if "`warm'" != "" {
     mat colnames Sigma_tild = `names' 
 	cap drop _COPY
 	quietly: gen _COPY = `touse'
+	qui: sum `touse' if `touse'
+	scalar Nobs = e(N)
     ereturn post beta_final Sigma_tild , obs(`e(N)') depname(`dvar') esample(`touse')  dof(`dof') 
 *** Restore Variables 
 	cap drop i2SLS_MP_HDFE_xb_hat
@@ -202,7 +204,7 @@ ereturn scalar arf = e(arf)
 ereturn local cmd "i2SLS_HDFE_MP"
 ereturn local vcetype `option'
 ereturn local absvar `absorb'
-di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
+di in gr _col(55) "Number of obs = " in ye %8.0f Nobs
 ereturn display	
 }
 
@@ -399,6 +401,8 @@ local df_r = e(Fdf2) - `df_a'
 	local dof_final = e(df r)- `dof_hdfe'
 	cap drop _COPY
 	quietly: gen _COPY = `touse'
+	qui: sum `touse' if `touse'
+	scalar Nobs = e(N)
     ereturn post beta_final Sigma_tild , obs(`=e(N)') depname(`dvar') esample(`touse')  dof(`df_r')
 	cap drop i2SLS_MP_HDFE_error
 	cap drop _reghdfe*
@@ -415,7 +419,7 @@ ereturn  scalar niter =  `k'
 ereturn local cmd "i2SLS_HDFE"
 ereturn local vcetype `option'
 ereturn local absvar `absorb'
-di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
+di in gr _col(55) "Number of obs = " in ye %8.0f Nobs
 display in gr _newline(1) _column(4) "Absorbed Fixed-Effects: `absorb'"
 ereturn display
 **** drop tempvars 
