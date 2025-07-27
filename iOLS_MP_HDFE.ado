@@ -175,6 +175,8 @@ mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,be
     mat colnames Sigma_tild = `names' 
 	cap drop _COPY
 	quietly: gen _COPY = `touse'
+	qui: sum `touse' if `touse'
+	scalar Nobs = e(N)
     ereturn post beta_final Sigma_tild , obs(`=e(N)') depname(`dvar') esample(`touse')  dof(`dof') 
     cap drop iOLS_MP_HDFE_xb_hat
 	cap drop iOLS_MP_HDFE_error
@@ -193,7 +195,7 @@ ereturn scalar df_r = `dof'
 ereturn local cmd "iOLS_MP_HDFE"
 ereturn local vcetype `option'
 ereturn local absvar `absorb'
-di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
+di in gr _col(55) "Number of obs = " in ye %8.0f Nobs
 ereturn display	
 }
 
@@ -341,6 +343,8 @@ local df_r = e(df_r) - `df_a'
     mat colnames Sigma_tild = `names' 
 	cap drop _COPY
 	quietly: gen _COPY = `touse'
+	qui: sum `touse' if `touse'
+	scalar Nobs = e(N)
     ereturn post beta_final Sigma_tild , obs(`=e(N)') depname(`dvar') esample(`touse')  dof(`df_r')
 *** report results (ereturn)
 cap drop iOLS_MP_HDFE_error
@@ -358,7 +362,7 @@ ereturn local absvar `absorb'
 cap drop _COPY
 cap drop Y0_*
 cap drop M0_* 
-di in gr _col(55) "Number of obs = " in ye %8.0f e(N)
+di in gr _col(55) "Number of obs = " in ye %8.0f Nobs
 display in gr _newline(1) _column(4) "Absorbed Fixed-Effects: `absorb'"
 ereturn display
 }
