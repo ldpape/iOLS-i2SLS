@@ -62,6 +62,8 @@ The same options to find an approximate solution are available for i2SLS_MP_HDFE
         eststo: i2SLS_MP_HDFE bw parity white male, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) warm 
         eststo: i2SLS_MP_HDFE bw parity white, endog(cigspreg) instr(edfwhite edmwhite incwhite cigtax88) absorb(male) cluster(male) warm delta_path(1 10 100 1000)
         esttab 
+### Output Illustration in Stata :
+![Animation](https://github.com/ldpape/iOLS-i2SLS/blob/main/Animation.gif)
 
 ##  Options :
 - "limit( )" indicates the convergence threshold : it is set at 1e-3. Reset it by adding limit(1e-4), for example.
@@ -84,3 +86,4 @@ Please cite the following article : https://arxiv.org/abs/2203.11820
       primaryClass={econ.EM},
       url={https://arxiv.org/abs/2203.11820}, 
 }
+
