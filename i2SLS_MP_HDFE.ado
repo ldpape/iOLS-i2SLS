@@ -26,68 +26,56 @@ qui: gen `depvar' = `dvar'
 *------------------------------------------------------------------------------*
 *---------------------------     DATA CLEANING     ----------------------------* 
 *------------------------------------------------------------------------------*
-*** drop missing observations 
-foreach var of varlist `depvar' `_rhs' `endog' `instr'{
-quietly  replace `touse' = 0 if missing(`var')	
+// *** drop missing observations 
+// foreach var of varlist `depvar' `_rhs' `endog' `instr'{
+// quietly  replace `touse' = 0 if missing(`var')	
+// }
+
+tempvar sep zvar 
+qui: gen `sep' =.
+qui: gen `zvar' =.
+qui: ppmlhdfe `depvar' `_rhs' `endog' `instr' if  `touse', absorb(`absorb') tagsep(`sep') zvar(`zvar')
+if `r(k_omitted)'>0{
+di "Collinearity detected - dropping variables :"
 }
-*** drop groups with only zeros 
-tempvar  _mean _ones
-qui: gen `_ones' = `depvar' == 0
-    if "`absorb'" !="" {
-foreach var of varlist `absorb' {   // drop missing observations
-cap drop `_mean'
-qui: gegen `_mean' = mean(`_ones'), by(`var')
-qui: replace `touse' = 0 if `_mean' == 1
-}
+local drop_list 
+local var_list
+local i 1
+foreach var of varlist `r(fullvarlist)' {
+    // Check if current position is *not* in omitted
+    if (strpos(" `r(omitted)' ", " `i' ") == 0) {
+        local var_list `var_list' `var'
+    }
+	else{
+	    local drop_list `drop_list' `var'
 	}
-*** drop groups with only zeros (in rhs, not in absorb)
-foreach var of varlist `_rhs' `endog'{
-	qui: gdistinct `var'
-	if (r(ndistinct)<3) {
-cap drop `_mean'
-qui: gegen `_mean' = mean(`_ones'), by(`var')
-qui: replace `touse' = 0 if `_mean' == 1	
-	}
+    local ++i
 }
+di "`drop_list'"
+
+local var_list: list var_list - endog // var_list = exogenous variables 
+local var_list: list var_list - instr
+qui: replace `touse' = (`sep'== 0) if `touse' & missing(`sep')==0 // sep is missing when no zeros
+
 *qui: sum `depvar' if `touse' & `depvar'>0
-*mata: mean_y = `r(mean)'
+*mata: mean_y = `r(mean)' // used to normalize variables during calculations 
 *qui:replace `depvar' = `depvar'/r(mean)
+
+
+
+
+
+	
+	
 *------------------------------------------------------------------------------*
 *------------------------  GPML: CASE WITHOUT FIXED EFFECTS  ------------------* 
 *------------------------------------------------------------------------------*
 if  "`absorb'" ==""{
-***  use sergio correira code to check for separation (see github)    	
-loc tol = 1e-5
-tempvar u w xb
-quietly: gen `u' =  !`depvar' if `touse'
-quietly: su `u'  if `touse', mean
-loc K = ceil(r(sum) / `tol' ^ 2)
-quietly: gen `w' = cond(`depvar', `K', 1)  if `touse'
-quietly: sum `w'
-if r(mean)!=0{
-while 1 {
-	cap: quietly: reghdfe `u' `_rhs' [fw=`w']  if `touse' , resid noabsorb 
-if _rc!=0 {
-	cap: quietly: reghdfe `u' `_rhs' [fw=`w']  if `touse' , resid noabsorb 
-}
-	quietly: predict double `xb'  if `touse', xbd
-quietly:	replace `xb' = 0 if (abs(`xb') < `tol')&(`touse')
-quietly:	 cou if (`xb' < 0) & (`touse')
-	if !r(N) {
-		continue, break
-	}
-quietly:	replace `u' = max(`xb', 0)  if `touse'
-quietly:	drop `xb' `w'
-}
-quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
-}
-*** drop collinear variables 
-	tempvar cste
-	gen `cste' = 1
-	quietly:   _rmcoll `_rhs' `cste' if `touse', forcedrop 
-	local var_list `endog' `r(varlist)' `cste'  
-	local instr_list `instr' `r(varlist)' `cste' 
-	local exogenous `r(varlist)'
+	tempvar cste 
+	qui: gen `cste' = 1
+	local exo_list `endog' `var_list' `cste'  
+	local instr_list `instr' `var_list' `cste' 
+	local exogenous `var_list'
 *** prepare variables for MATA
 	cap drop y_tild
 	quietly gen y_tild = ln(1+`depvar') if `touse'
@@ -95,7 +83,7 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	mata : Z=.
 	mata : y_tilde =.
 	mata : y =.
-	mata : st_view(X,.,"`var_list'","`touse'")
+	mata : st_view(X,.,"`exo_list'","`touse'")
 	mata : st_view(Z,.,"`instr_list'","`touse'")
 	mata : st_view(y_tilde,.,"y_tild","`touse'")
 	mata : st_view(y,.,"`depvar'","`touse'")
@@ -135,7 +123,6 @@ else {
 	local k = 0
 	local eps = 1000	
 	mata : criteria = 10000
-	di "got here"
 /*         iOLS LOOP       */	
 if "`warm'" != "" {
 	if "`delta_path'" == ""{ // if no delta_path, calculate one
@@ -212,42 +199,9 @@ ereturn display
 *------------------------ HDFE: CASE WITH FIXED EFFECTS  ----------------------* 
 *------------------------------------------------------------------------------*
 if "`absorb'" != "" {
-*** check for separation following correira (see github)
-if "`nocheck'" == "1"{
-loc tol = 1e-5
-tempvar u w xb e
-quietly: gen `u' =  !`depvar' if `touse'
-quietly: su `u'  if `touse', mean
-loc K = ceil(r(sum) / `tol' ^ 2)
-quietly: gen `w' = cond(`depvar', `K', 1)  if `touse'
-quietly: sum `w'
-if r(mean)!=0{
-while 1 {
-cap: quietly:	reghdfe `u' `_rhs'  `endog'  [fw=`w']  if `touse' , absorb(`absorb') resid(`e')
-if _rc!=0 {
-cap: quietly:	reghdfe `u' `_rhs'  `endog'  [fw=`w']  if `touse' , absorb(`absorb') resid(`e')
-}
-quietly:	predict double `xb'  if `touse', xbd
-quietly:	replace `xb' = 0 if (abs(`xb') < `tol')&(`touse')
-quietly:	 cou if (`xb' < 0) & (`touse')
-	if !r(N) {
-		continue, break
-	}
-quietly:	replace `u' = max(`xb', 0)  if `touse'
-quietly:	drop `xb' `w'
-}
-quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
-}
-}
-*** drop collinear variables 	
-	tempvar cste
-	gen `cste' = 1
-	quietly:   _rmcoll `_rhs' `endog' `cste' if `touse' , forcedrop 
-	if r(k_omitted) >0 di 
-	local alt_varlist `r(varlist)'
-	local alt_varlist: list alt_varlist- endog
-	local var_list `endog' `alt_varlist' 
-	local instr_list `instr' `alt_varlist' 
+// *** drop collinear variables 	
+// 	local exo_list `endog' var_list 
+// 	local instr_list `instr' var_list 
 *** prepare for looping 
 	cap drop Z0_*
 	cap drop E0_*
@@ -281,8 +235,8 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	mata : st_view(y,.,"`depvar'","`touse'")	
 	}
 	else { // standard case with both X and FE
-	quietly hdfe `alt_varlist'  if `touse'  [`aw'] , absorb(`absorb') generate(M0_) acceleration(sd)   transform(sym)
-	quietly hdfe `endog'  if `touse'  [`aw'] , absorb(`absorb') generate(E0_) acceleration(sd)   transform(sym)
+	quietly hdfe `var_list'  if `touse'  [`aw'] , absorb(`absorb') generate(M0_) acceleration(sd)   transform(sym)
+	quietly hdfe `exog'  if `touse'  [`aw'] , absorb(`absorb') generate(E0_) acceleration(sd)   transform(sym)
 	quietly hdfe `instr'  if `touse'  [`aw'] , absorb(`absorb') generate(Z0_) acceleration(sd)   transform(sym)
 	cap drop y_tild  
 	quietly gen y_tild = ln(1+`depvar') if `touse'
@@ -295,7 +249,7 @@ quietly: replace `touse'  = (`xb' <= 0) // & (`touse')
 	mata : y_tilde =.
 	mata : Py_tilde =.
 	mata : y =.
-	mata : st_view(X,.,"`var_list'","`touse'")
+	mata : st_view(X,.,"`exog' `var_list'","`touse'")
 	mata : st_view(PX,.,"E0_* M0_*","`touse'")
 	mata : st_view(PZ,.,"Z0_* M0_*","`touse'")
 	mata : st_view(y_tilde,.,"y_tild","`touse'")
@@ -626,11 +580,11 @@ printf("\n")
 }
 end
 
-/*
 
+/*
 ** - Example
 * Set the number of individuals (N) and time periods (T)
-local N = 2000
+local N = 20000
 local T = 2
 set seed 1234
 * Create a dataset with all combinations of individuals and time periods
@@ -641,10 +595,10 @@ expand `T'
 bysort id: gen time = _n
 
 * Generate individual-specific effects (alpha)
-gen alpha = rnormal(-0.5, 0.5)
+gen alpha = rnormal(0.2, 0.5)
 
 * Generate time-specific effects (gamma)
-gen gamma = rnormal(alpha, 0.5)
+gen gamma = rnormal(0.2, 0.5)
 
 * Create a time variable with common shocks across individuals
 egen gamma_t = mean(gamma), by(time)
@@ -654,12 +608,12 @@ egen alpha_i = mean(alpha), by(id)
 gen X1 =  runiform(0, 1) + alpha_i - gamma_t
 gen X2 =  rnormal(0, 1) + X1 - alpha_i + gamma_t
 gen Z  =  rnormal(0,1) -gamma_t + alpha_i
-gen D  =  rnormal(0, 1) + X1 - X2 - alpha_i - gamma_t - 3*Z
+gen D  =  rnormal(0, 1) + X1 - X2 - alpha_i - gamma_t - 10*Z
 * Generate idiosyncratic errors (epsilon)
 gen epsilon = runiform(0, 2)
-gen Y = exp(2*X1 + 2*X2 + 2*D - gamma_t  - 0.1*ln(abs(alpha_i)))*epsilon
+gen Y = (abs(alpha_i) + abs(gamma_t))*exp(2*X1 + 2*X2 + 2*D)*epsilon
 gen wvar = (uniform())*1000 // random weights 
 * Create a dependent variable (Y) based on a linear model
- xi: i2SLS_MP_HDFE Y X1  X2  i.gamma_t i.id ,  endog(D) instr(Z) warm 
-i2SLS_MP_HDFE Y X1 X2  , absorb(gamma_t id )  endog(D) instr(Z)  warm delta_path(1 10 100)
+// xi: i2SLS_MP_HDFE Y X1   i.time  ,  endog(D) instr(Z) warm 
+i2SLS_MP_HDFE Y X1  , absorb(time id)  endog(D) instr(Z)  
 */
