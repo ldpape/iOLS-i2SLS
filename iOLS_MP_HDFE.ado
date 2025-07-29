@@ -495,3 +495,40 @@ printf("=========================================================\n")
 printf("\n")
 }
 end
+/*
+
+** - Example
+* Set the number of individuals (N) and time periods (T)
+local N = 5000
+local T = 2
+set seed 1234
+* Create a dataset with all combinations of individuals and time periods
+clear 
+set obs `N'
+gen id = _n
+expand `T'
+bysort id: gen time = _n
+
+
+* Generate time-specific effects (gamma)
+gen gamma = rnormal(-0.5, 0.5)
+gen alpha = rnormal(0.5, 0.5)
+
+* Create a time variable with common shocks across individuals
+egen gamma_t = mean(gamma), by(time)
+egen alpha_i = mean(alpha), by(id)
+
+* Generate independent variables (X1, X2)
+gen X1 =  runiform(0, 1) + alpha_i - gamma_t
+gen X2 =  rnormal(0, 1) + X1 - alpha_i + gamma_t
+gen Z  =  rnormal(0,1) -gamma_t + alpha_i
+gen D  =  rnormal(0, 1) - X1 - X2 - alpha_i + gamma_t - 3*Z
+* Generate idiosyncratic errors (epsilon)
+gen epsilon = runiform(0, 2)
+gen y = exp(2*X1 + 2*X2 + 2*D - gamma_t - ln(abs(0.01+alpha_i))*0.1 )*(epsilon>0.45)
+* Create a dependent variable (Y) based on a linear model
+
+gen x1 = X1
+xi: iOLS_MP_HDFE y X1 X2 D x1 i.time ,    warm delta_path(1 10 100)
+xi: iOLS_MP_HDFE y X1 X2 D x1 ,  absorb(time id)   warm delta_path(1 10 100)
+*/
