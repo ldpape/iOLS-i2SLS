@@ -31,6 +31,10 @@ tempvar sep zvar
 qui: gen `sep' =.
 qui: gen `zvar' =.
 qui: ppmlhdfe `depvar' `_rhs' if  `touse', absorb(`absorb') tagsep(`sep') zvar(`zvar')
+if `r(k_omitted)'>0{
+di "Collinearity detected - dropping variables :"
+}
+local drop_list 
 local var_list
 local i 1
 foreach var of varlist `r(fullvarlist)' {
@@ -38,8 +42,12 @@ foreach var of varlist `r(fullvarlist)' {
     if (strpos(" `r(omitted)' ", " `i' ") == 0) {
         local var_list `var_list' `var'
     }
+	else{
+	    local drop_list `drop_list' `var'
+	}
     local ++i
 }
+di "`drop_list'"
 qui: replace `touse' = (`sep'== 0) if `touse' & missing(`sep')==0 // sep is missing when no zeros
 
 *qui: sum `depvar' if `touse' & `depvar'>0
@@ -495,8 +503,11 @@ printf("=========================================================\n")
 printf("\n")
 }
 end
-/*
 
+
+
+
+/*
 ** - Example
 * Set the number of individuals (N) and time periods (T)
 local N = 5000
@@ -529,6 +540,6 @@ gen y = exp(2*X1 + 2*X2 + 2*D - gamma_t - ln(abs(0.01+alpha_i))*0.1 )*(epsilon>0
 * Create a dependent variable (Y) based on a linear model
 
 gen x1 = X1
-xi: iOLS_MP_HDFE y X1 X2 D x1 i.time ,    warm delta_path(1 10 100)
-xi: iOLS_MP_HDFE y X1 X2 D x1 ,  absorb(time id)   warm delta_path(1 10 100)
+ xi: iOLS_MP_HDFE y X1 X2 D x1 x1 x1 i.time ,    warm delta_path(1 10 100)
+ xi: iOLS_MP_HDFE y X1 X2 D x1 ,  absorb(time id)   warm delta_path(1 10 100)
 */
