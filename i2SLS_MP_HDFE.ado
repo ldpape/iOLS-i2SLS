@@ -213,7 +213,7 @@ if "`absorb'" != "" {
 		di in red "Analytical Weights - each obseration is weighted by : sqrt(w)"
 		local aw "aw = `aweight'"
 	}
-	if "`alt_varlist'"=="" { // case with no X , only FE 
+	if "`var_list'"=="" { // case with no X , only FE 
 	quietly hdfe `endog' if `touse' [`aw'] , absorb(`absorb') generate(E0_) acceleration(sd)   transform(sym)
 	quietly hdfe `instr' if `touse' [`aw'] , absorb(`absorb') generate(Z0_) acceleration(sd)   transform(sym)
 	cap drop y_tild
@@ -236,7 +236,7 @@ if "`absorb'" != "" {
 	}
 	else { // standard case with both X and FE
 	quietly hdfe `var_list'  if `touse'  [`aw'] , absorb(`absorb') generate(M0_) acceleration(sd)   transform(sym)
-	quietly hdfe `exog'  if `touse'  [`aw'] , absorb(`absorb') generate(E0_) acceleration(sd)   transform(sym)
+	quietly hdfe `endog'  if `touse'  [`aw'] , absorb(`absorb') generate(E0_) acceleration(sd)   transform(sym)
 	quietly hdfe `instr'  if `touse'  [`aw'] , absorb(`absorb') generate(Z0_) acceleration(sd)   transform(sym)
 	cap drop y_tild  
 	quietly gen y_tild = ln(1+`depvar') if `touse'
@@ -249,7 +249,7 @@ if "`absorb'" != "" {
 	mata : y_tilde =.
 	mata : Py_tilde =.
 	mata : y =.
-	mata : st_view(X,.,"`exog' `var_list'","`touse'")
+	mata : st_view(X,.,"`endog' `var_list'","`touse'")
 	mata : st_view(PX,.,"E0_* M0_*","`touse'")
 	mata : st_view(PZ,.,"Z0_* M0_*","`touse'")
 	mata : st_view(y_tilde,.,"y_tild","`touse'")
@@ -304,7 +304,7 @@ mata: ivloop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_ha
 	mata: alpha = log(mean(y:*exp(-xb_hat_M)))
 	mata: ui = y:*exp(-xb_hat_M :-alpha)
 	mata: weight = ui:/(1 :+ delta)
-	foreach var in `alt_varlist' {     // rename variables for last ols
+	foreach var in `var_list' {     // rename variables for last ols
 	quietly	rename `var' TEMP_`var'
 	quietly	rename M0_`var' `var'
 	}	
@@ -318,16 +318,16 @@ mata: ivloop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_ha
 	}
 cap _crcslbl Y0_ `depvar' // label Y0 correctly
 	if "`aweight'" == ""{
-quietly: ivreg2 Y0_ `alt_varlist' (`endog' = `instr')  if `touse' , `option' noconstant   // standard case with X and FE 
+quietly: ivreg2 Y0_ `var_list' (`endog' = `instr')  if `touse' , `option' noconstant   // standard case with X and FE 
 	}
 	else {
-quietly: ivreg2 Y0_ `alt_varlist' (`endog' = `instr') [aw = `aweight'] if `touse' , `option' noconstant   // standard case with X and FE 		
+quietly: ivreg2 Y0_ `var_list' (`endog' = `instr') [aw = `aweight'] if `touse' , `option' noconstant   // standard case with X and FE 		
 	}
 local df_r = e(Fdf2) - `df_a'
  if "`cluster'" !="" {
  local df_r = e(Fdf2)
 }
-	foreach var in `alt_varlist' {      // rename variables back
+	foreach var in `var_list' {      // rename variables back
 	quietly	rename `var' M0_`var'
 	quietly	rename TEMP_`var' `var'
 	}
@@ -584,7 +584,7 @@ end
 /*
 ** - Example
 * Set the number of individuals (N) and time periods (T)
-local N = 20000
+local N = 10000
 local T = 2
 set seed 1234
 * Create a dataset with all combinations of individuals and time periods
@@ -607,13 +607,13 @@ egen alpha_i = mean(alpha), by(id)
 * Generate independent variables (X1, X2)
 gen X1 =  runiform(0, 1) + alpha_i - gamma_t
 gen X2 =  rnormal(0, 1) + X1 - alpha_i + gamma_t
-gen Z  =  rnormal(0,1) -gamma_t + alpha_i
-gen D  =  rnormal(0, 1) + X1 - X2 - alpha_i - gamma_t - 10*Z
+gen Z  =  rnormal(0,1) -0.1*gamma_t + 0.1*alpha_i
+gen D  =  rnormal(0, 1) + X1 - X2 - alpha_i - gamma_t - Z
 * Generate idiosyncratic errors (epsilon)
 gen epsilon = runiform(0, 2)
-gen Y = (abs(alpha_i) + abs(gamma_t))*exp(2*X1 + 2*X2 + 2*D)*epsilon
+gen Y = ( 0.5*abs(gamma_t) + 0.1*abs(alpha_i))*exp(-X1 + X2 + D)*epsilon
 gen wvar = (uniform())*1000 // random weights 
 * Create a dependent variable (Y) based on a linear model
-// xi: i2SLS_MP_HDFE Y X1   i.time  ,  endog(D) instr(Z) warm 
-i2SLS_MP_HDFE Y X1  , absorb(time id)  endog(D) instr(Z)  
+ xi: i2SLS_MP_HDFE Y X1   i.time  ,  endog(D) instr(Z) warm 
+i2SLS_MP_HDFE Y X1 X2 , absorb(time id)  endog(D) instr(Z)  warm
 */
