@@ -3,7 +3,7 @@ mata: mata set matafavor speed
 mata: mata set matastrict off
 cap program drop iOLS_MP_HDFE
 program define iOLS_MP_HDFE, eclass 
-syntax varlist [if] [in] [aweight pweight fweight iweight] [, rho(real 1) delta_path(string) LIMit(real 1e-3) WARM OFFset(string) from(name) checkzero(real 1) aweight(varlist) MAXimum(real 10000) ABSorb(string) SHOW  FIXED Robust CLuster(string)]        
+syntax varlist [if] [in] [aweight pweight fweight iweight] [, rho(real 1) delta_path(string) LIMit(real 1e-3) WARM OFFset(string) from(name) checkzero(real 1) aweight(varlist) MAXimum(real 10000) POOLsize(real 50) ABSorb(string) SHOW  FIXED Robust CLuster(string)]        
 *------------------------------------------------------------------------------*
 *--------------------------     PARSE TEXT     --------------------------------* 
 *------------------------------------------------------------------------------*
@@ -439,8 +439,8 @@ values = (tokens(st_local("delta_path")))
 	stata("cap drop y_tild")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
 	stata("cap drop Y0_")
-        if (weight=="")  stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  acceleration(sd)  tolerance(\`almost_conv')  transform(sym)  ") ;;
-   	if (weight!="")  stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv') acceleration(sd)   transform(sym)  ") ;;	
+        if (weight=="")  stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  acceleration(sd)  tolerance(\`almost_conv')  transform(sym) poolsize(\`poolsize') ") ;;
+   	if (weight!="")  stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  tolerance(\`almost_conv') acceleration(sd)   transform(sym) poolsize(\`poolsize') ") ;;	
 	st_view(Py_tilde,.,"Y0_",touse)
 	beta_new = invPXPX*cross(PX,Py_tilde)
 	criteria = max(abs(beta_new:-beta_initial))
@@ -482,8 +482,8 @@ printf("\n")
 	stata("cap drop y_tild")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
 	stata("cap drop Y0_")
-  	if (weight=="")  stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  acceleration(sd)   transform(sym)  ") ;;
-	if (weight!="")  stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  acceleration(sd)   transform(sym)  ") ;;
+  	if (weight=="")  stata("quietly: hdfe y_tild if \`touse' , absorb(\`absorb') generate(Y0_)  acceleration(sd)   transform(sym) poolsize(\`poolsize')  ") ;;
+	if (weight!="")  stata("quietly: hdfe y_tild if \`touse' [aw = \`aweight'] , absorb(\`absorb') generate(Y0_)  acceleration(sd)   transform(sym) poolsize(\`poolsize') ") ;;
 	st_view(Py_tilde,.,"Y0_",touse)
 	beta_new = invPXPX*cross(PX,Py_tilde)
 	past_criteria = criteria
