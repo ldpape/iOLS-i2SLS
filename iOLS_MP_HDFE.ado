@@ -96,6 +96,7 @@ else {
 	mata: xb_hat = .
 	mata: beta_new = .
 	mata: past_criteria = .
+	mata: err = .
 	mata : criteria = 10000 
 	mata : delta = 1
 	local k = 1
@@ -116,7 +117,7 @@ if "`warm'" != ""{
 mata: loop_function_D_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,scale_delta,stop_crit)	
 }
 	mata : delta = `rho' // provided, or equal to 1 
-mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
+mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,err)
 *** Covariance Matrix Calculation	
 	mata: alpha = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	mata: beta_initial[(cols(X)),1] = alpha
@@ -236,6 +237,7 @@ else {
 	mata: stop_crit = 0
 	mata: xb_hat_N = .
 	mata: diff = .
+	mata: err = .
 	mata: delta = 1
 	mata : scale_delta = max(y:*exp(-PX*beta_initial :- ln(mean(y:*exp(-PX*beta_initial))))) 
 *** loop with iOLS_delta and/or iOLS_MP
@@ -252,7 +254,7 @@ if "`warm'" != ""{
 	mata: loop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria,scale_delta)
 }
 	mata : delta = `rho'
-	mata: loop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
+	mata: loop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,err,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
 *** variance covariance calculation
  	mata: ui = y:*exp(-xb_hat_M :- log(mean( y:*exp(-xb_hat_M  ))))
 	mata: weight =  ui :/ (1 :+ delta)
@@ -371,7 +373,7 @@ end
 ** iOLS_MP loop 
 
 mata:
-void function loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w)
+void function loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,err)
 {
 criteria = 1000
 past_criteria = 10000
@@ -379,6 +381,7 @@ max = strtoreal(st_local("maximum"))
 lim = strtoreal(st_local("limit"))
 show = st_local("show")
 weight = st_local("aweight")
+err = max 
 printf("\n")
 printf("=========================================================\n")
 printf("     Calculating Exact Estimate (iOLS-ρ)\n")
@@ -395,11 +398,13 @@ printf("\n")
 	if (past_criteria<criteria & i>1) delta = delta*2 ;;
 	if (past_criteria<criteria & i>1) printf("Convergence Issue - Increasing ρ to: %f\n", delta);; 
 	if (past_criteria<criteria & i>1) criteria = past_criteria ;;
+	if (past_criteria<criteria & i>1) err = i ;; 
 	if (past_criteria>criteria | i==1) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (mod(i,1)==0 & i>1) criteria ;;
 	}
+if (err<(i-5)) display("Recent Convergence Issue - Results are unreliable") ;; 
 printf("\n")
 printf("=========================================================\n")
 printf("     Final Estimation Results:\n")
@@ -462,7 +467,7 @@ end
 *** iOLS_MP_HDFE loop
 
 mata:
-void function loop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
+void function loop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,err,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
 {
  criteria = 1000
  past_criteria = 1000
@@ -470,6 +475,7 @@ void function loop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,beta_
  lim = strtoreal(st_local("limit"))
  show = st_local("show")
  weight = st_local("aweight")
+err = max
 printf("\n")
 printf("=========================================================\n")
 printf("     Calculating Exact Estimate (iOLS-ρ)\n")
@@ -492,11 +498,13 @@ printf("\n")
  	if (past_criteria<criteria & i>1) delta = delta*2 ;;
 	if (past_criteria<criteria & i>1) printf("Convergence Issue - Increasing ρ to: %f\n", delta);; 
  	if (past_criteria<criteria & i>1) criteria = past_criteria ;;
+	if (past_criteria<criteria & i>1) err = i ;; 
  	if (past_criteria>criteria | i==1) beta_initial = beta_new ;;
 	if (i == max) display("Maximum number of iterations hit : results are unreliable.") ;; 
  	if (criteria < lim) i=max+1;; // puts an end to the loop 
 	if (mod(i,1)==0 & i>1) criteria ;;
 	}
+if (err<(i-5)) display("Recent Convergence Issue - Results are unreliable") ;; 
 printf("\n")
 printf("=========================================================\n")
 printf("     Final Estimation Results:\n")
