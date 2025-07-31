@@ -383,6 +383,7 @@ ereturn display
 	cap drop Y0_*
 	cap drop xb_hat*
 	}
+mata: mata drop *
 end
 
 
