@@ -34,7 +34,7 @@ qui: gen `depvar' = `dvar'
 tempvar sep zvar 
 qui: gen `sep' =.
 qui: gen `zvar' =.
-qui: ppmlhdfe `depvar' `_rhs' `endog' `instr' if  `touse', absorb(`absorb') tagsep(`sep') zvar(`zvar')
+qui: ppmlhdfe `depvar' `_rhs' `endog' if  `touse', absorb(`absorb') tagsep(`sep') zvar(`zvar')   // `instr'
 if `r(k_omitted)'>0{
 di "Collinearity detected - dropping variables :"
 }
