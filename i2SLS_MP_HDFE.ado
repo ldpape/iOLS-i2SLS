@@ -543,7 +543,7 @@ end
 
 
 mata:
-void function ivloop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
+void function ivloop_function_D_fe(string scalar touse, y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,err,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
 {
 criteria = 1000
 past_criteria = 1000
