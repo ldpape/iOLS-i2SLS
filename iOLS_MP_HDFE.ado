@@ -312,6 +312,7 @@ di in gr _col(55) "Number of obs = " in ye %8.0f Nobs
 display in gr _newline(1) _column(4) "Absorbed Fixed-Effects: `absorb'"
 ereturn display
 }
+mata: mata drop *
 end
 
 *------------------------------------------------------------------------------*
