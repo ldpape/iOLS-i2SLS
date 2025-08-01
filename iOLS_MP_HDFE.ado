@@ -3,7 +3,7 @@ mata: mata set matafavor speed
 mata: mata set matastrict off
 cap program drop iOLS_MP_HDFE
 program define iOLS_MP_HDFE, eclass 
-syntax varlist [if] [in] [aweight pweight fweight iweight] [, rho(real 1) delta_path(string) LIMit(real 1e-3) WARM OFFset(string) from(name) checkzero(real 1) aweight(varlist) MAXimum(real 10000) POOLsize(real 50) ABSorb(string) SHOW  FIXED Robust CLuster(string)]        
+syntax varlist [if] [in] [aweight pweight fweight iweight] [, rho(real 1) delta_path(string) LIMit(real 1e-3) WARM OFFset(string) from(name) checkzero(real 1) aweight(varlist) MAXimum(real 10000) POOLsize(real 250) ABSorb(string) SHOW  FIXED Robust CLuster(string)]        
 *------------------------------------------------------------------------------*
 *--------------------------     PARSE TEXT     --------------------------------* 
 *------------------------------------------------------------------------------*
