@@ -169,6 +169,7 @@ ereturn scalar df_r = `dof'
 ereturn local cmd "iOLS_MP_HDFE"
 ereturn local vcetype `option'
 ereturn local absvar `absorb'
+display in gr _newline(1) _column(1) "Gamma-PML Estimated by iOLS"
 di in gr _col(55) "Number of obs = " in ye %8.0f Nobs
 ereturn display	
 }
@@ -311,7 +312,8 @@ cap drop _COPY
 cap drop Y0_*
 cap drop M0_* 
 di in gr _col(55) "Number of obs = " in ye %8.0f Nobs
-display in gr _newline(1) _column(4) "Absorbed Fixed-Effects: `absorb'"
+display in gr _newline(1) _column(1) "HDFE iOLS Estimator"
+display in gr _newline(1) _column(1) "Absorbed Fixed-Effects: `absorb'"
 ereturn display
 }
 mata: mata drop *
