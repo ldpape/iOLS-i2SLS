@@ -441,7 +441,7 @@ values = (tokens(st_local("delta_path")))
 	alpha = log(mean(y:*exp(-xb_hat_M)))
 	c_hat = mean(log(y :+ delta:*exp(alpha :+ xb_hat_M))) :- mean(alpha  :+ xb_hat_M)
 	diff = y_tilde - Py_tilde 
-	y_tilde = log(y :+ delta:*exp(xb_hat_M)) :- c_hat
+	y_tilde = log(y :+ delta:*exp(xb_hat_M :+ alpha)) :- c_hat
 	stata("cap drop y_tild")
 	st_store(., st_addvar("double", "y_tild"), touse, y_tilde-diff)
 	stata("cap drop Y0_")
