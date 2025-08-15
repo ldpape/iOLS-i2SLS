@@ -192,6 +192,7 @@ ereturn scalar arf = e(arf)
 ereturn local cmd "i2SLS_HDFE_MP"
 ereturn local vcetype `option'
 ereturn local absvar `absorb'
+display in gr _newline(1) _column(1) "Endogenous Gamma-PML Estimated by i2LS"
 di in gr _col(55) "Number of obs = " in ye %8.0f Nobs
 ereturn display	
 }
@@ -376,6 +377,7 @@ ereturn local cmd "i2SLS_HDFE"
 ereturn local vcetype `option'
 ereturn local absvar `absorb'
 di in gr _col(55) "Number of obs = " in ye %8.0f Nobs
+display in gr _newline(1) _column(1) "HDFE i2SLS Estimator"
 display in gr _newline(1) _column(4) "Absorbed Fixed-Effects: `absorb'"
 ereturn display
 **** drop tempvars 
