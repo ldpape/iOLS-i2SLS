@@ -73,8 +73,8 @@ qui: replace `touse' = (`sep'== 0) if `touse' & missing(`sep')==0 // sep is miss
 if  "`absorb'" ==""{
 	tempvar cste 
 	qui: gen `cste' = 1
-	local exo_list  `cste' `endog' `var_list'  
-	local instr_list `cste' `instr' `var_list' 
+	local exo_list  `endog' `var_list' `cste' 
+	local instr_list `instr' `var_list' `cste'
 	local exogenous `var_list'
 *** prepare variables for MATA
 	cap drop y_tild
