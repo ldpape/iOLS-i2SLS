@@ -59,8 +59,8 @@ qui: replace `touse' = (`sep'== 0) if `touse' & missing(`sep')==0 // sep is miss
 if "`absorb'" == ""{
 
 // *** drop collinear variables 
- 	cap drop _COPY_cste
- 	gen _COPY_cste = 1
+	tempvar cste 
+	qui: gen `cste' = 1
 //     quietly: _rmcoll `_rhs'  if `touse', forcedrop 
 // 	local var_list `r(varlist)' 
 	
@@ -70,7 +70,7 @@ if "`absorb'" == ""{
 	mata : X=.
 	mata : y_tilde =.
 	mata : y =.
-	mata : st_view(X,.,"`var_list' _COPY_cste","`touse'")
+	mata : st_view(X,.,"`var_list' `cste'","`touse'")
 	mata : st_view(y_tilde,.,"y_tild","`touse'")
 	mata : st_view(y,.,"`depvar'","`touse'")
 	mata w = .
