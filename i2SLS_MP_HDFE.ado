@@ -3,7 +3,7 @@ mata: mata set matafavor speed
 mata: mata set matastrict off
 cap program drop i2SLS_MP_HDFE
 program define i2SLS_MP_HDFE, eclass
-syntax varlist [if] [in]  [, rho(real 1) delta_path(string)  ABSorb(varlist) OFFset(string) LIMit(real 1e-3) WARM from(name) nocheck(real 1) MAXimum(real 10000) POOLsize(real 250) ENDog(varlist) INSTR(varlist) SHOW  FIXED Robust CLuster(string) aweight(varlist)  ]              
+syntax varlist [if] [in]  [, rho(real 1) delta_path(string)  ABSorb(varlist) OFFset(string) LIMit(real 1e-3) WARM from(name) nocheck(real 1) MAXimum(real 10000) POOLsize(real 250) ENDog(varlist) INSTR(varlist) STDopt(string) SHOW  FIXED Robust CLuster(string) aweight(varlist)  ]              
 *------------------------------------------------------------------------------*
 *--------------------------     PARSE TEXT     --------------------------------* 
 *------------------------------------------------------------------------------*
@@ -11,12 +11,12 @@ syntax varlist [if] [in]  [, rho(real 1) delta_path(string)  ABSorb(varlist) OFF
 	marksample touse
 	markout `touse'  `cluster', s   
 	if  "`robust'" !="" {
-		local opt1  = "`robust' "
+		local opt1  = "`robust'"
 	}
 	if "`cluster'" !="" {
 		local opt2 = "cluster(`cluster') "
 	}
-	local option = "`opt1'`opt2'"
+	local option = "`opt1'`opt2' `stdopt'"
 	local list_var `varlist'
 	gettoken dvar list_var : list_var
 	gettoken _rhs list_var : list_var, p("(")
