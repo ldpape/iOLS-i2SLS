@@ -307,6 +307,7 @@ mata: ivloop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_ha
 	mata: alpha = log(mean(y:*exp(-xb_hat_M)))
 	mata: ui = y:*exp(-xb_hat_M :-alpha)
 	mata: weight = ui:/(1 :+ delta)
+	cap drop TEMP_*
 	foreach var in `var_list' {     // rename variables for last ols
 	quietly	rename `var' TEMP_`var'
 	quietly	rename M0_`var' `var'
