@@ -260,7 +260,6 @@ if "`warm'" != ""{
  	mata: ui = y:*exp(-xb_hat_M :- log(mean( y:*exp(-xb_hat_M  ))))
 	mata: weight =  ui :/ (1 :+ delta)
   	foreach var in `var_list' {     // rename variables for last ols
-	cap drop TEMP_*
 	quietly	rename `var' TEMP_`var'
 	quietly	rename M0_`var' `var'
 	}
