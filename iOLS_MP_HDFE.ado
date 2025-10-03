@@ -23,7 +23,11 @@ syntax varlist [if] [in] [aweight pweight fweight iweight] [, rho(real 1) delta_
 	gettoken dvar list_var : list_var // change 
 gettoken _rhs list_var : list_var, p("(")
 tempvar depvar 
-qui: gen `depvar' = `dvar' // normalize outcome variable
+qui: sum `dvar' if `touse' & `dvar'>0
+qui: gen `depvar' = `dvar'/r(sd) if `touse' // normalize outcome variable
+if r(min)<0{
+	di in red "y<0 detected : probable convergence issues"
+}
 *------------------------------------------------------------------------------*
 *---------------------------     DATA CLEANING     ----------------------------* 
 *------------------------------------------------------------------------------*
@@ -49,15 +53,22 @@ foreach var of varlist `r(fullvarlist)' {
 }
 di "`drop_list'"
 qui: replace `touse' = (`sep'== 0) if `touse' & missing(`sep')==0 // sep is missing when no zeros
-
-*qui: sum `depvar' if `touse' & `depvar'>0
-*mata: mean_y = `r(mean)' // used to normalize variables during calculations 
-*qui:replace `depvar' = `depvar'/r(mean)
+//  *** normalize data 
+local scales_list ""
+   foreach var of varlist `var_list' {	
+	qui:  sum `var' if `touse'	
+   scalar a_`var' = r(sd)
+   qui: replace `var' = `var'/a_`var'	 if `touse' & a_`var'>0
+   local invsd = `=r(sd)'
+   local scales_list "`scales_list' `invsd'"
+   }
+mata:    v = strtoreal(tokens("`scales_list'"))
+mata:    S = diag(v)
+mata:    st_matrix("S", S)
 *------------------------------------------------------------------------------*
 *------------------------  GPML: CASE WITHOUT FIXED EFFECTS  ------------------* 
 *------------------------------------------------------------------------------*
 if "`absorb'" == ""{
-
 // *** drop collinear variables 
 	tempvar cste 
 	qui: gen `cste' = 1
@@ -128,6 +139,9 @@ mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,be
 	mata: st_local("delta", strofreal(delta))
 	cap drop y_tild
 	mata: st_store(., st_addvar("double", "y_tild"), "`touse'", y_tilde)
+	foreach var of varlist `var_list' {	//rescale 
+ 	quietly: replace `var' = `var'*a_`var'	 if `touse' & a_`var'>0
+ 	}
 		if "`aweight'"==""{
 	quietly: reg y_tild `var_list'  if `touse', `option'
 		}
@@ -275,21 +289,28 @@ local df_r = e(df_r) - `df_a'
  local df_r = e(df_r) 
 }
 *** report results 	
-	matrix beta_final = e(b) // 
-	matrix Sigma = (e(df_r) / `df_r')*e(V)
+	matrix b_old = e(b)      
+	matrix V_old = e(V)
+	matrix beta_final = (inv(S) * b_old')'   // equals diag(s_j) * b_old => rescaling 
+	matrix Sigma = (e(df_r) / `df_r')*V_old // correct degrees of freedom 
 	foreach var in `var_list' {      // rename variables back
 	quietly	rename `var' M0_`var'
 	quietly	rename TEMP_`var' `var'
 	}
+	foreach var of varlist `var_list' {	 // restore scaling 
+  	quietly: replace `var' = `var'*a_`var'	 if `touse' & a_`var'>0
+  	}
 	mata : Sigma_hat = st_matrix("Sigma")
 	mata : Sigma_0 = (cross(PX,PX))*Sigma_hat*(cross(PX,PX)) // recover original HAC 
 	mata : invXpIWX = invsym(cross(PX, weight,PX)) 
 	mata : Sigma_tild = invXpIWX*Sigma_0*invXpIWX
     mata : st_matrix("Sigma_tild", Sigma_tild) // used in practice
-	local names : colnames beta_final
+	matrix Sigma_tild = inv(S) * Sigma_tild * inv(S)'
+	local names : colnames b_old
 	local nbvar : word count `names'
 	mat rownames Sigma_tild = `names' 
     mat colnames Sigma_tild = `names' 
+	mat colnames beta_final = `names' 
 	cap drop _COPY
 	quietly: gen _COPY = `touse'
 	qui: sum `touse' if `touse'
@@ -516,9 +537,9 @@ printf("\n")
 end
 
 
-
-
 /*
+
+
 ** - Example
 * Set the number of individuals (N) and time periods (T)
 local N = 5000
@@ -553,4 +574,7 @@ gen y = exp(2*X1 + 2*X2 + 2*D - gamma_t - ln(abs(0.01+alpha_i))*0.1 )*(epsilon>0
 gen x1 = X1
  xi: iOLS_MP_HDFE y X1 X2 D x1 x1 x1 i.time ,    warm delta_path(1 10 100)
  xi: iOLS_MP_HDFE y X1 X2 D x1 ,  absorb(time id)   warm delta_path(1 10 100)
+replace X1 = X1/10 
+  xi: iOLS_MP_HDFE y X1 X2 D x1 ,  absorb(time id)   warm delta_path(1 10 100)
+
 */
