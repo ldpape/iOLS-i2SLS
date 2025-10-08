@@ -21,7 +21,11 @@ syntax varlist [if] [in]  [, rho(real 1) delta_path(string)  ABSorb(varlist) OFF
 	gettoken dvar list_var : list_var
 	gettoken _rhs list_var : list_var, p("(")
 tempvar depvar 
-qui: gen `depvar' = `dvar'
+qui: sum `dvar' if `touse' & `dvar'>0
+qui: gen `depvar' = `dvar'/r(sd) if `touse' // normalize outcome variable
+if r(min)<0{
+	di in red "y<0 detected : probable convergence issues"
+}
 
 *------------------------------------------------------------------------------*
 *---------------------------     DATA CLEANING     ----------------------------* 
@@ -61,11 +65,28 @@ qui: replace `touse' = (`sep'== 0) if `touse' & missing(`sep')==0 // sep is miss
 *mata: mean_y = `r(mean)' // used to normalize variables during calculations 
 *qui:replace `depvar' = `depvar'/r(mean)
 
+//  *** normalize data 
+local scales_list "" // for X
+   foreach var of varlist `endog' `var_list' {	
+	qui:  sum `var' if `touse'	
+   scalar a_`var' = r(sd)
+   qui: replace `var' = `var'/a_`var'	 if `touse' & a_`var'>0
+   local invsd = `=r(sd)'
+   local scales_list "`scales_list' `invsd'"
+   }
+mata:    v = strtoreal(tokens("`scales_list'"))
+mata:    S = diag(v)
+mata:    st_matrix("S", S)
 
+local scales_list_Z "" // for Z
+   foreach var of varlist `instr' {	
+   qui:  sum `var' if `touse'	
+   scalar a_`var' = r(sd)
+   qui: replace `var' = `var'/a_`var'	 if `touse' & a_`var'>0
+   local invsd = `=r(sd)'
+   local scales_list_Z "`scales_list' `invsd'"
+   }
 
-
-
-	
 	
 *------------------------------------------------------------------------------*
 *------------------------  GPML: CASE WITHOUT FIXED EFFECTS  ------------------* 
@@ -148,6 +169,9 @@ if "`warm'" != "" {
 	mata: st_local("delta", strofreal(delta))
 	cap drop y_tild
 	mata: st_store(., st_addvar("double", "y_tild"), "`touse'", y_tilde)
+	foreach var of varlist `endog' `var_list' `instr' {	//rescale 
+ 	quietly: replace `var' = `var'*a_`var'	 if `touse' & a_`var'>0
+ 	}
 	if "`aweight'"==""{
 		quietly: ivreg2 y_tild `exogenous' (`endog' = `instr') if `touse', `option'
 	}
@@ -343,25 +367,36 @@ local df_r = e(Fdf2) - `df_a'
 	quietly	rename `var' E0_`var'
 	quietly	rename TEMP_`var' `var'
 	}
-	matrix beta_final = e(b) 
-	matrix Sigma = (e(Fdf2) / `df_r')*e(V)
+	matrix b_old = e(b)      
+	matrix V_old = e(V)
+	matrix beta_final = (inv(S) * b_old')'   // equals diag(s_j) * b_old => rescaling 
+	matrix Sigma = (e(Fdf2) / `df_r')*V_old // correct degrees of freedom 
 	mata : Sigma_hat = st_matrix("Sigma")
 	mata : Sigma_0 = (cross(PX,PZ)*invsym(cross(PZ,PZ))*cross(PZ,PX):/rows(PX))*Sigma_hat*(cross(PX,PZ)*invsym(cross(PZ,PZ))*cross(PZ,PX):/rows(PX)) // recover original HAC 
 	mata : invXpPzIWX = invsym(0.5:/rows(PX)*cross(PX,PZ)*invsym(cross(PZ,PZ))*cross(PZ,weight,PX)+ 0.5:/rows(PX)*cross(PX,weight,PZ)*invsym(cross(PZ,PZ))*cross(PZ,PX))
 	mata : Sigma_tild = invXpPzIWX*Sigma_0*invXpPzIWX
 	mata : Sigma_tild = (Sigma_tild+Sigma_tild'):/2 
-    mata: st_matrix("Sigma_tild", Sigma_tild) // used in practice
-*** report results (ereturn)
-	local names : colnames beta_final
+    mata : st_matrix("Sigma_tild", Sigma_tild) // used in practice
+	matrix Sigma_tild = inv(S) * Sigma_tild * inv(S)'
+	local names : colnames b_old
 	local nbvar : word count `names'
 	mat rownames Sigma_tild = `names' 
     mat colnames Sigma_tild = `names' 
+	mat colnames beta_final = `names'  
+	cap drop _COPY
+	quietly: gen _COPY = `touse'
+	qui: sum `touse' if `touse'
+	scalar Nobs = e(N)
+	foreach var of varlist `endog' `var_list' `instr' {	//rescale 
+ 	quietly: replace `var' = `var'*a_`var'	 if `touse' & a_`var'>0
+ 	}
+*** report results (ereturn)
 	local dof_final = e(df r)- `dof_hdfe'
 	cap drop _COPY
 	quietly: gen _COPY = `touse'
 	qui: sum `touse' if `touse'
 	scalar Nobs = e(N)
-    ereturn post beta_final Sigma_tild , obs(`=e(N)') depname(`dvar') esample(`touse')  dof(`df_r')
+    ereturn post beta_final Sigma_tild , obs(`=e(N)') depname(`dvar') esample(`touse')  dof(`dof_final')
 	cap drop i2SLS_MP_HDFE_error
 	cap drop _reghdfe*
 	cap drop y_tild
@@ -626,6 +661,6 @@ gen epsilon = runiform(0, 2)
 gen Y = ( 0.5*abs(gamma_t) + 0.1*abs(alpha_i))*exp(-X1 + X2 + D)*epsilon
 gen wvar = (uniform())*1000 // random weights 
 * Create a dependent variable (Y) based on a linear model
- xi: i2SLS_MP_HDFE Y X1   i.time  ,  endog(D) instr(Z) warm 
+//  xi: i2SLS_MP_HDFE Y X1   i.time  ,  endog(D) instr(Z) warm 
 i2SLS_MP_HDFE Y X1 X2 , absorb(time id)  endog(D) instr(Z)  warm
 */
