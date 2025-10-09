@@ -156,10 +156,22 @@ if "`warm'" != "" {
 	di "    "
 	di "Estimated ẟ - Path: `delta_path'"
 	}
-	mata:  ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w)
+capture noisily	mata:  ivloop_function_D_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria, stop_crit, beta_history, alpha, c_hat, beta_contemporary,scale_delta,k,w)
+	local rc = _rc
+	if `rc' != 0 {
+        display as error "/!\ ERROR /!\"
+		display as error "Your data has been rescaled. Reload your data before any new analysis."
+        error `rc'
+    }
 }
 	mata: delta = `rho'
-	mata:  ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,err)
+capture noisily	mata:  ivloop_function_nofe(y,X,Z,beta_initial,delta,invPzX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,err)
+		local rc = _rc
+	if `rc' != 0 {
+        display as error "/!\ ERROR /!\"
+		display as error "Your data has been rescaled. Reload your data before any new analysis."
+        error `rc'
+    }
 *** Covariance Matrix Calculation	
 	mata: beta_initial[(cols(X)),1] = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	mata: xb_hat = X*beta_initial
@@ -323,10 +335,22 @@ if "`warm'" != "" {
 	di "    "
 	di "Estimated ẟ - Path: `delta_path'"
 	}
-mata: ivloop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,beta_history, c_hat, beta_contemporary, stop_crit,scale_delta)
+capture noisily mata: ivloop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPzX,beta_new,criteria,past_criteria,beta_history, c_hat, beta_contemporary, stop_crit,scale_delta)
+	local rc = _rc
+	if `rc' != 0 {
+        display as error "/!\ ERROR /!\"
+		display as error "Your data has been rescaled. Reload your data before any new analysis."
+        error `rc'
+    }
 }
 mata: delta = `rho'
-mata: ivloop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,err,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
+capture noisily mata: ivloop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,PZ,beta_initial,xb_hat_N,X,diff,Py_tilde,err,y_tilde,delta,invPzX,beta_new,criteria,past_criteria)
+	local rc = _rc
+	if `rc' != 0 {
+        display as error "/!\ ERROR /!\"
+		display as error "Your data has been rescaled. Reload your data before any new analysis."
+        error `rc'
+    }
 *** variance covariance calculation
 	mata: alpha = log(mean(y:*exp(-xb_hat_M)))
 	mata: ui = y:*exp(-xb_hat_M :-alpha)
@@ -632,7 +656,7 @@ end
 ** - Example
 * Set the number of individuals (N) and time periods (T)
 local N = 10000
-local T = 2
+local T = 10
 set seed 1234
 * Create a dataset with all combinations of individuals and time periods
 clear 
@@ -661,6 +685,6 @@ gen epsilon = runiform(0, 2)
 gen Y = ( 0.5*abs(gamma_t) + 0.1*abs(alpha_i))*exp(-X1 + X2 + D)*epsilon
 gen wvar = (uniform())*1000 // random weights 
 * Create a dependent variable (Y) based on a linear model
-//  xi: i2SLS_MP_HDFE Y X1   i.time  ,  endog(D) instr(Z) warm 
+ xi: i2SLS_MP_HDFE Y X1   i.time  ,  endog(D) instr(Z) warm 
 i2SLS_MP_HDFE Y X1 X2 , absorb(time id)  endog(D) instr(Z)  warm
 */
