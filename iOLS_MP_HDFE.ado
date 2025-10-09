@@ -125,10 +125,22 @@ if "`warm'" != ""{
 	di "    "
 	di "Estimated ẟ - Path: `delta_path'"
 	}
-mata: loop_function_D_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,scale_delta,stop_crit)	
+capture noisily mata: loop_function_D_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,scale_delta,stop_crit)	
+		local rc = _rc
+	if `rc' != 0 {
+        display as error "/!\ ERROR /!\"
+		display as error "Your data has been rescaled. Reload your data before any new analysis."
+        error `rc'
+    }
 }
 	mata : delta = `rho' // provided, or equal to 1 
-mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,err)
+capture noisily mata: loop_function_nofe(y,X,beta_initial,delta,invXX,criteria,xb_hat,y_tilde,beta_new,past_criteria,w,err)
+		local rc = _rc
+	if `rc' != 0 {
+        display as error "/!\ ERROR /!\"
+		display as error "Your data has been rescaled. Reload your data before any new analysis."
+        error `rc'
+    }
 *** Covariance Matrix Calculation	
 	mata: alpha = ln(mean(y:*exp(-X[.,1..(cols(X)-1)]*beta_initial[1..(cols(X)-1),1])))
 	mata: beta_initial[(cols(X)),1] = alpha
@@ -266,10 +278,22 @@ if "`warm'" != ""{
 	di "    "
 	di "Estimated ẟ - Path: `delta_path'"
 	}
-	mata: loop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria,scale_delta)
+capture noisily	mata: loop_function_D("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,fe,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria,scale_delta)
+		local rc = _rc
+	if `rc' != 0 {
+        display as error "/!\ ERROR /!\"
+		display as error "Your data has been rescaled. Reload your data before any new analysis."
+        error `rc'
+    }
 }
 	mata : delta = `rho'
-	mata: loop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,err,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
+capture noisily	mata: loop_function_D_fe("`touse'", y,xb_hat,xb_hat_M,PX,beta_initial,xb_hat_N,X,diff,Py_tilde,err,y_tilde,delta,invPXPX,beta_new,criteria,past_criteria)
+		local rc = _rc
+	if `rc' != 0 {
+        display as error "/!\ ERROR /!\"
+		display as error "Your data has been rescaled. Reload your data before any new analysis."
+        error `rc'
+    }
 *** variance covariance calculation
  	mata: ui = y:*exp(-xb_hat_M :- log(mean( y:*exp(-xb_hat_M  ))))
 	mata: weight =  ui :/ (1 :+ delta)
